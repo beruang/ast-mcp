@@ -13,11 +13,12 @@ target/
 *.swp
 *~
 
-# --- Agent runtime artifacts (implement/scout) ---
-# Track the brainstorm contract, but exclude runtime/orchestration state.
-.agent/implement/
-.agent/codebase/
+# --- Agent runtime artifacts ---
+.agent/
 .agent-worktrees/
+
+# --- Design / planning artifacts ---
+docs/ast-mcp-v1/
 
 # --- Editor / scratch ---
 *.log
