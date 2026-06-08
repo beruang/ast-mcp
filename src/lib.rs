@@ -7,3 +7,4 @@ pub mod mcp;
 pub mod parser;
 pub mod safety;
 pub mod shared;
+pub mod tools;
