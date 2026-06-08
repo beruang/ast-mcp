@@ -11,7 +11,8 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 #[allow(dead_code)]
 struct JsonRpcRequest {
     jsonrpc: String,
-    id: Value,
+    #[serde(default)]
+    id: Option<Value>,
     method: String,
     #[serde(default)]
     params: Value,
@@ -47,6 +48,13 @@ pub async fn run() -> anyhow::Result<()> {
             }
         };
 
+        // JSON-RPC 2.0: notifications have no id and require no response.
+        if req.id.is_none() {
+            continue;
+        }
+
+        let req_id = req.id.as_ref().cloned().unwrap();
+
         // Dispatch
         let resp = match req.method.as_str() {
             "initialize" => {
@@ -60,7 +68,7 @@ pub async fn run() -> anyhow::Result<()> {
                         "tools": {}
                     }
                 });
-                success_envelope(result, req.id)
+                success_envelope(result, req_id.clone())
             }
 
             "tools/list" => {
@@ -76,7 +84,7 @@ pub async fn run() -> anyhow::Result<()> {
                     })
                     .collect();
                 let result = json!({ "tools": tools });
-                success_envelope(result, req.id)
+                success_envelope(result, req_id.clone())
             }
 
             "tools/call" => {
@@ -88,16 +96,15 @@ pub async fn run() -> anyhow::Result<()> {
                 let arguments = req.params.get("arguments").cloned().unwrap_or(json!({}));
 
                 match dispatch(name, arguments) {
-                    Some(payload) => success_envelope(text_envelope(payload), req.id),
+                    Some(payload) => success_envelope(text_envelope(payload), req_id.clone()),
                     None => {
                         let err = error_envelope(-32602, &format!("Tool not found: {}", name));
                         // Attach id to error response
                         let mut err_obj = err;
-                        if let Some(id) = req
-                            .id
+                        let id = req_id
                             .as_i64()
-                            .or_else(|| req.id.as_str().and_then(|s| s.parse().ok()))
-                        {
+                            .or_else(|| req_id.as_str().and_then(|s| s.parse().ok()));
+                        if let Some(id) = id {
                             if let Some(obj) = err_obj.as_object_mut() {
                                 obj.insert("id".to_string(), serde_json::json!(id));
                             }
@@ -116,11 +123,10 @@ pub async fn run() -> anyhow::Result<()> {
             _ => {
                 let err = error_envelope(-32601, &format!("Method not found: {}", req.method));
                 let mut err_obj = err;
-                if let Some(id) = req
-                    .id
+                let id = req_id
                     .as_i64()
-                    .or_else(|| req.id.as_str().and_then(|s| s.parse().ok()))
-                {
+                    .or_else(|| req_id.as_str().and_then(|s| s.parse().ok()));
+                if let Some(id) = id {
                     if let Some(obj) = err_obj.as_object_mut() {
                         obj.insert("id".to_string(), serde_json::json!(id));
                     }
