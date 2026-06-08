@@ -6,6 +6,7 @@ use crate::parser::registry;
 use crate::shared::errors::AstToolError;
 use crate::shared::language::LanguageId;
 
+#[derive(Debug)]
 pub struct ParseStatus {
     pub has_syntax_error: bool,
     pub root_kind: String,

@@ -19,3 +19,4 @@ tree-sitter-python = "0.20"
 [dev-dependencies]
 walkdir = "2"
 tempfile = "3"
+rand = "0.8"

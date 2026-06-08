@@ -1,5 +1,7 @@
 # Position Encoding (V1)
 
+**Verified in V1.0** — see `tests/positions_test.rs`, `tests/position_utf16_test.rs`, and the sweep tests in `tests/integration_sweep.rs`.
+
 ## Model
 
 The public API uses **UTF-16 code units** for character offsets in `Position.character`. This matches the LSP model.
