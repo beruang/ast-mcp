@@ -1,0 +1,67 @@
+{"type":"contract_meta","project":"ast-mcp-v1","status":"approved","confidence":98,"created":"2026-06-08","target_repo":"/Volumes/Workspace/rnd/workflow/mcp/ast/"}
+{"type":"problem","summary":"AI agents working on multi-language codebases need fast, safe, structural code intelligence. The existing LSP MCP server provides semantic intelligence but is heavy and not always available. AST MCP fills the structural gap with a read-only, scope-bounded, language-server-free service."}
+{"type":"goal","id":"goal-1","text":"Ship a Rust stdio MCP server exposing exactly 12 ast_* tools."}
+{"type":"goal","id":"goal-2","text":"Support TypeScript, TSX, JavaScript, JSX, and Python at the parser level."}
+{"type":"goal","id":"goal-3","text":"Enforce workspace-relative paths, bounded output, and a 1 MiB per-file cap."}
+{"type":"goal","id":"goal-4","text":"Provide syntax-aware chunking and bounded Tree-sitter queries for agent workflows."}
+{"type":"goal","id":"goal-5","text":"Remain usable when LSP MCP is unavailable; never call any lsp_* tool, language server, or semantic engine."}
+{"type":"success_criterion","id":"sc-1","text":"ast_health_check returns workspace status and parser availability for all 5 V1 languages."}
+{"type":"success_criterion","id":"sc-2","text":"ast_list_supported_languages returns the full registry with extension routing."}
+{"type":"success_criterion","id":"sc-3","text":"ast_parse_file parses valid .ts, .tsx, .js, .jsx, and .py files and reports hasSyntaxError."}
+{"type":"success_criterion","id":"sc-4","text":"ast_file_outline returns classes, functions, imports, exports, types, and enums for TS/JS and Python."}
+{"type":"success_criterion","id":"sc-5","text":"ast_top_level_nodes returns direct root children in source order with optional text."}
+{"type":"success_criterion","id":"sc-6","text":"ast_enclosing_node finds the smallest node at a position with kind filter and ancestors."}
+{"type":"success_criterion","id":"sc-7","text":"ast_find_imports detects ES imports, CommonJS require, dynamic import, and Python imports."}
+{"type":"success_criterion","id":"sc-8","text":"ast_find_exports detects TS/JS exports and Python __all__ plus best-effort public definitions."}
+{"type":"success_criterion","id":"sc-9","text":"ast_find_functions and ast_find_classes return parameters, return types, methods, and parent class."}
+{"type":"success_criterion","id":"sc-10","text":"ast_chunk_file supports 4 strategies with stable chunk IDs and respects line/byte limits."}
+{"type":"success_criterion","id":"sc-11","text":"ast_query compiles and runs bounded Tree-sitter queries with structured errors on invalid input."}
+{"type":"success_criterion","id":"sc-12","text":"Paths outside the workspace are rejected; output is bounded; no tool writes files."}
+{"type":"scope_in","id":"scope-in-1","text":"12 ast_* tools, 5 V1 languages, Tree-sitter parsing, single-workspace, bounded output."}
+{"type":"scope_in","id":"scope-in-2","text":"WORKSPACE_PATH-based single-root workspace model with path safety and file size limits."}
+{"type":"scope_in","id":"scope-in-3","text":"UTF-16 to byte-offset conversion helpers with non-BMP tests."}
+{"type":"scope_in","id":"scope-in-4","text":"Language-specific extractors for imports, exports, functions, classes, and 4 chunking strategies."}
+{"type":"scope_in","id":"scope-in-5","text":"Unit tests, integration tests, safety tests, and architectural lint tests."}
+{"type":"scope_out","id":"scope-out-1","text":"LSP integration, semantic references, type resolution, compiler diagnostics."}
+{"type":"scope_out","id":"scope-out-2","text":"Workspace-wide indexing, workspace-wide AST queries."}
+{"type":"scope_out","id":"scope-out-3","text":"Framework-aware extraction (routes, React components, hooks, tests, decorators, schemas)."}
+{"type":"scope_out","id":"scope-out-4","text":"AST rewrites, file mutation, persistent state, caching (deferred to V5)."}
+{"type":"scope_out","id":"scope-out-5","text":"Remote workspace support, multi-root workspace support."}
+{"type":"scope_out","id":"scope-out-6","text":"V2-V5 tool surface (deferred per spec section 36)."}
+{"type":"scope_out","id":"scope-out-7","text":"Composite workflows (code_context_pack, code_inspect_symbol, etc.)."}
+{"type":"constraint","id":"c-1","text":"Read-only: no fs::write, no tokio::fs::write, no OpenOptions::write, no fs::rename. Enforced by tests/architecture/no_write.rs."}
+{"type":"constraint","id":"c-2","text":"No LSP: no lsp_* crate in Cargo.toml, no use lsp_ in src/. Enforced by tests/architecture/no_lsp.rs."}
+{"type":"constraint","id":"c-3","text":"Single workspace root per process; supplied via WORKSPACE_PATH env var or CWD."}
+{"type":"constraint","id":"c-4","text":"Public API uses UTF-16 character positions; conversion helpers required."}
+{"type":"constraint","id":"c-5","text":"Default limits as V1 constants: maxFileBytes=1MiB, maxNodes=500, maxResults=200, maxTextBytes=20000, maxChunkLines=120, maxChunkBytes=30000, maxQueryMatches=200, parseTimeoutMs=5000, queryTimeoutMs=5000."}
+{"type":"constraint","id":"c-6","text":"All responses are single JSON; errors are structured AstToolError. No prose in tool payloads."}
+{"type":"constraint","id":"c-7","text":"Tool names match spec section 4 exactly. No additions, no removals."}
+{"type":"assumption","id":"a-1","text":"Implementation lives at the project root /Volumes/Workspace/rnd/workflow/mcp/ast/; the Rust crate is initialized as a sub-crate alongside spec/, docs/, and .agent/."}
+{"type":"assumption","id":"a-2","text":"Tree-sitter and language crate versions are pinned to the spec's recommendations: tree-sitter 0.22, tree-sitter-typescript 0.20, tree-sitter-javascript 0.20, tree-sitter-python 0.20. May pin to closest stable versions if these have moved."}
+{"type":"assumption","id":"a-3","text":"MCP transport is either an existing Rust SDK or a thin JSON-RPC over stdio behind mcp::transport."}
+{"type":"assumption","id":"a-4","text":"UTF-16 conversion is exact for ASCII, Latin-1, BMP, and surrogate pairs; full non-BMP correctness is asserted by tests but not formally proven."}
+{"type":"assumption","id":"a-5","text":"Tree-sitter parses a 1 MiB file in well under 1 s on commodity hardware; the 5 s parseTimeoutMs is a safety net."}
+{"type":"assumption","id":"a-6","text":"Test fixtures live in tests/fixtures/ and are committed, including a small corpus for each V1 language plus UTF-16 and syntax-error cases."}
+{"type":"decision","id":"d-1","text":"V1 scope is exactly the 12 tools named in spec/version-1.md section 4.","reason":"Spec is unambiguous; tool surface must match exactly for downstream orchestration."}
+{"type":"decision","id":"d-2","text":"Rust plus Tree-sitter as the parser layer.","reason":"Recommended by the spec; matches agent-server norms; Tree-sitter is the de facto standard for syntax trees across all 5 V1 languages."}
+{"type":"decision","id":"d-3","text":"Single workspace root per process.","reason":"Spec section 7. Multi-root is a V5 concern."}
+{"type":"decision","id":"d-4","text":"Read-only server, no caches in V1.","reason":"Spec sections 8.2 and 5. Caching is a V5 concern."}
+{"type":"decision","id":"d-5","text":"Public positions are UTF-16.","reason":"Spec section 9. Aligns with LSP contract for future orchestration."}
+{"type":"decision","id":"d-6","text":"Bounded output is mandatory, not optional.","reason":"Spec section 8.3. AST output can be huge; unbounded responses can OOM the client."}
+{"type":"decision","id":"d-7","text":"Errors are structured JSON, never prose.","reason":"Spec sections 12 and 28. Tools are consumed by agents, not humans."}
+{"type":"decision","id":"d-8","text":"Internal architecture follows spec section 29: mcp/, config/, safety/, parser/, languages/, extractors/, tools/, shared/, utils/.","reason":"Spec lists this layout; cleanly separates transport, parsing, and tool handlers."}
+{"type":"decision","id":"d-9","text":"The 12 development milestones become the phase plan.","reason":"Spec section 33 enumerates 12 milestones, each a small, testable, committable unit."}
+{"type":"decision","id":"d-10","text":"V2-V5 are deferred, not pre-built.","reason":"Spec section 36. V1 design must keep extension points open, but the implementation must not pre-build V2 capabilities."}
+{"type":"decision","id":"d-11","text":"Architectural lint tests enforce no-write and no-LSP.","reason":"Constraints c-1 and c-2 are the most important invariants in the contract. Manual review is error-prone."}
+{"type":"decision","id":"d-12","text":"The 4 chunking strategies ship in one phase.","reason":"They share the same chunk-iteration core; splitting them across phases adds coordination cost without benefit."}
+{"type":"risk","id":"r-1","text":"UTF-16 position conversion is subtly wrong for non-BMP characters.","severity":"medium","likelihood":"possible"}
+{"type":"risk","id":"r-2","text":"Tree-sitter version drift breaks extraction.","severity":"medium","likelihood":"possible"}
+{"type":"risk","id":"r-3","text":"Bounded output drops important context.","severity":"medium","likelihood":"likely"}
+{"type":"risk","id":"r-4","text":"Never-write-files is broken by a future refactor.","severity":"high","likelihood":"unlikely"}
+{"type":"risk","id":"r-5","text":"Never-call-LSP is broken by a future refactor.","severity":"critical","likelihood":"unlikely"}
+{"type":"risk","id":"r-6","text":"Workspace path traversal via symbolic links.","severity":"high","likelihood":"possible"}
+{"type":"risk","id":"r-7","text":"Query timeout is a soft limit, not a hard cancel.","severity":"medium","likelihood":"possible"}
+{"type":"risk","id":"r-8","text":"Tree-sitter crashes on malformed input.","severity":"low","likelihood":"rare"}
+{"type":"risk","id":"r-9","text":"Chunk IDs are not stable across versions.","severity":"low","likelihood":"possible"}
+{"type":"risk","id":"r-10","text":"Multi-version spec drift.","severity":"low","likelihood":"possible"}
+{"type":"risk","id":"r-11","text":"JSON payload size for full parse trees.","severity":"low","likelihood":"likely"}

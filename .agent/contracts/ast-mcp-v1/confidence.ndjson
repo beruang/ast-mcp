@@ -1,0 +1,6 @@
+{"type":"confidence_score","dimension":"problem_clarity","score":20,"max":20,"reason":"Spec section 1 and section 2 state the problem, the architectural boundary, and the LSP vs AST split explicitly."}
+{"type":"confidence_score","dimension":"goal_definition","score":20,"max":20,"reason":"12 tools, 5 languages, exact tech stack, file layout, and milestones are enumerated in the spec."}
+{"type":"confidence_score","dimension":"success_criteria","score":19,"max":20,"reason":"11 acceptance criteria groups in section 34 cover all 12 tools. Small gap: one item (never call LSP services) needs an architectural lint test."}
+{"type":"confidence_score","dimension":"scope_boundaries","score":20,"max":20,"reason":"Section 5 explicitly enumerates 17 V1 non-goals, reinforced by the Final Design Principle (section 38)."}
+{"type":"confidence_score","dimension":"consistency","score":19,"max":20,"reason":"No contradictions; Final Design Principle reinforces the boundary. Tiny tension: chunking strategies in section 23 are partially overlapping, will resolve in spec."}
+{"type":"confidence_total","score":98,"max":100,"threshold":95,"action":"generate_contract"}

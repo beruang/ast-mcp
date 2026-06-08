@@ -1,0 +1,19 @@
+{
+  "type": "brainstorm_manifest",
+  "project": "ast-mcp-v1",
+  "status": "approved",
+  "created": "2026-06-08",
+  "human_root": "docs/ast-mcp-v1",
+  "agent_root": ".agent/contracts/ast-mcp-v1",
+  "contract": "docs/ast-mcp-v1/contract.md",
+  "phases": "docs/ast-mcp-v1/phases.md",
+  "spec_index": "docs/ast-mcp-v1/spec/spec-index.md",
+  "agent_files": {
+    "contract": ".agent/contracts/ast-mcp-v1/contract.ndjson",
+    "confidence": ".agent/contracts/ast-mcp-v1/confidence.ndjson",
+    "phases": ".agent/contracts/ast-mcp-v1/phases.ndjson",
+    "specs_index": ".agent/contracts/ast-mcp-v1/specs.index.ndjson",
+    "decisions": ".agent/contracts/ast-mcp-v1/decisions.ndjson",
+    "risks": ".agent/contracts/ast-mcp-v1/risks.ndjson"
+  }
+}

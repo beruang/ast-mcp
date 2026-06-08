@@ -1,0 +1,25 @@
+# --- Rust ---
+target/
+**/*.rs.bk
+*.pdb
+*.d
+*.o
+*.obj
+
+# --- IDE / OS ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# --- Agent runtime artifacts (implement/scout) ---
+# Track the brainstorm contract, but exclude runtime/orchestration state.
+.agent/implement/
+.agent/codebase/
+.agent-worktrees/
+
+# --- Editor / scratch ---
+*.log
+.env
+.env.local
