@@ -19,6 +19,7 @@ target/
 
 # --- Design / planning artifacts ---
 docs/
+spec/
 
 # --- Editor / scratch ---
 *.log
