@@ -1,10 +1,11 @@
 //! ast-mcp entry point.
-#[macro_use]
-extern crate serde_json;
 
-mod mcp;
+use ast_mcp::config::workspace::Workspace;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    mcp::transport::run().await
+    // Initialize workspace — validates WORKSPACE_PATH or CWD.
+    let _workspace = Workspace::from_env()?;
+
+    ast_mcp::mcp::transport::run().await
 }
