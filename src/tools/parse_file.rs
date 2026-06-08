@@ -81,13 +81,8 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 
     if input.include_tree {
         let mut count: usize = 0;
-        let tree_json = walk_tree(
-            &tree.root_node(),
-            &source,
-            max_depth,
-            input.include_node_text,
-            &mut count,
-        );
+        let tree_json =
+            walk_tree(&tree.root_node(), &source, max_depth, input.include_node_text, &mut count);
         result["tree"] = tree_json;
         result["truncated"] = json!(count >= crate::safety::limits::MAX_NODES);
     }
@@ -96,9 +91,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 }
 
 fn extension_to_language(path: &str) -> Option<LanguageId> {
-    let ext = std::path::Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())?;
+    let ext = std::path::Path::new(path).extension().and_then(|s| s.to_str())?;
     let dotted = format!(".{}", ext);
     parser::registry::for_extension(&dotted).map(|d| d.language)
 }
@@ -135,13 +128,7 @@ fn walk_tree(
                 if *count >= crate::safety::limits::MAX_NODES {
                     None
                 } else {
-                    Some(walk_tree(
-                        &child,
-                        source,
-                        max_depth - 1,
-                        include_text,
-                        count,
-                    ))
+                    Some(walk_tree(&child, source, max_depth - 1, include_text, count))
                 }
             })
             .collect();

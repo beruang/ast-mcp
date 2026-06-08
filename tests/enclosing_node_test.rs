@@ -26,13 +26,8 @@ fn enclosing_node_inside_if_returns_if_statement() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
 
-    let ancestors = result["ancestors"]
-        .as_array()
-        .expect("ancestors should be an array");
-    let kinds: Vec<&str> = ancestors
-        .iter()
-        .map(|a| a["kind"].as_str().unwrap_or(""))
-        .collect();
+    let ancestors = result["ancestors"].as_array().expect("ancestors should be an array");
+    let kinds: Vec<&str> = ancestors.iter().map(|a| a["kind"].as_str().unwrap_or("")).collect();
 
     // Should find if_statement somewhere in the ancestor chain.
     assert!(
@@ -58,20 +53,12 @@ fn enclosing_node_kinds_filter_returns_only_class() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
 
-    let ancestors = result["ancestors"]
-        .as_array()
-        .expect("ancestors should be an array");
-    let kinds: Vec<&str> = ancestors
-        .iter()
-        .map(|a| a["kind"].as_str().unwrap_or(""))
-        .collect();
+    let ancestors = result["ancestors"].as_array().expect("ancestors should be an array");
+    let kinds: Vec<&str> = ancestors.iter().map(|a| a["kind"].as_str().unwrap_or("")).collect();
 
     // With the kind filter, all results should be class_declaration.
     for k in &kinds {
-        assert_eq!(
-            *k, "class_declaration",
-            "all filtered ancestors should be class_declaration"
-        );
+        assert_eq!(*k, "class_declaration", "all filtered ancestors should be class_declaration");
     }
 }
 
@@ -86,10 +73,7 @@ fn enclosing_node_out_of_bounds_returns_error() {
             "character": 0
         }),
     );
-    assert!(
-        result["error"].is_object(),
-        "expected error for OOB position"
-    );
+    assert!(result["error"].is_object(), "expected error for OOB position");
     assert_eq!(result["error"]["code"], json!("invalid_position"));
 }
 
@@ -107,27 +91,16 @@ fn enclosing_node_returns_ancestors_outermost_first() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
 
-    let ancestors = result["ancestors"]
-        .as_array()
-        .expect("ancestors should be an array");
-    assert!(
-        !ancestors.is_empty(),
-        "should have ancestors at a valid position"
-    );
+    let ancestors = result["ancestors"].as_array().expect("ancestors should be an array");
+    assert!(!ancestors.is_empty(), "should have ancestors at a valid position");
 
     // The root (program) should be first (outermost).
     let first_kind = ancestors.first().unwrap()["kind"].as_str().unwrap();
-    assert_eq!(
-        first_kind, "program",
-        "first ancestor should be the root program"
-    );
+    assert_eq!(first_kind, "program", "first ancestor should be the root program");
 
     // Last ancestor should be the deepest node covering the position.
     let last_kind = ancestors.last().unwrap()["kind"].as_str().unwrap();
-    assert!(
-        !last_kind.is_empty(),
-        "last (innermost) ancestor should have a kind"
-    );
+    assert!(!last_kind.is_empty(), "last (innermost) ancestor should have a kind");
 }
 
 #[test]

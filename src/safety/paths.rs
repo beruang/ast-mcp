@@ -64,16 +64,10 @@ pub fn resolve_file(workspace: &Workspace, input: &str) -> Result<ResolvedFile, 
     }
 
     // Build workspace-relative path with forward slashes.
-    let workspace_relative = canonical
-        .strip_prefix(workspace.root())
-        .unwrap()
-        .to_string_lossy()
-        .replace('\\', "/");
+    let workspace_relative =
+        canonical.strip_prefix(workspace.root()).unwrap().to_string_lossy().replace('\\', "/");
 
-    Ok(ResolvedFile {
-        absolute: canonical,
-        workspace_relative,
-    })
+    Ok(ResolvedFile { absolute: canonical, workspace_relative })
 }
 
 /// Return the size of a file in bytes.

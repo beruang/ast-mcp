@@ -146,10 +146,7 @@ fn extract_ts_js_import_clause(node: &tree_sitter::Node, source: &str, names: &m
             "identifier" => {
                 // Default import: `import React from "react"`
                 if let Ok(text) = child.utf8_text(source.as_bytes()) {
-                    names.push(Alias {
-                        imported: text.to_string(),
-                        local: text.to_string(),
-                    });
+                    names.push(Alias { imported: text.to_string(), local: text.to_string() });
                 }
             }
             "named_imports" => {
@@ -211,10 +208,7 @@ fn extract_namespace_import(node: &tree_sitter::Node, source: &str, names: &mut 
         };
         if child.kind() == "identifier" {
             if let Ok(text) = child.utf8_text(source.as_bytes()) {
-                names.push(Alias {
-                    imported: "*".to_string(),
-                    local: text.to_string(),
-                });
+                names.push(Alias { imported: "*".to_string(), local: text.to_string() });
                 return;
             }
         }
@@ -314,10 +308,7 @@ fn extract_py_import_statement(node: &tree_sitter::Node, source: &str) -> Option
         match child.kind() {
             "dotted_name" => {
                 let text = child.utf8_text(source.as_bytes()).unwrap_or("").to_string();
-                names.push(Alias {
-                    imported: text.clone(),
-                    local: text,
-                });
+                names.push(Alias { imported: text.clone(), local: text });
             }
             "aliased_import" => {
                 let mut imported = String::new();
@@ -389,10 +380,7 @@ fn extract_py_import_from_statement(node: &tree_sitter::Node, source: &str) -> O
                     module_path = Some(text);
                 } else {
                     // Subsequent dotted_names are imported names
-                    names.push(Alias {
-                        imported: text.clone(),
-                        local: text,
-                    });
+                    names.push(Alias { imported: text.clone(), local: text });
                 }
             }
             "aliased_import" => {
@@ -431,10 +419,7 @@ fn extract_py_import_from_statement(node: &tree_sitter::Node, source: &str) -> O
     }
 
     if is_wildcard {
-        names.push(Alias {
-            imported: "*".to_string(),
-            local: "*".to_string(),
-        });
+        names.push(Alias { imported: "*".to_string(), local: "*".to_string() });
     }
 
     let range = make_range(node, source);

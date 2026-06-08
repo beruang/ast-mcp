@@ -32,11 +32,7 @@ fn parse_file_truncates_large_tree() {
     );
 
     // Should succeed
-    assert!(
-        result["error"].is_null(),
-        "expected success, got error: {:?}",
-        result
-    );
+    assert!(result["error"].is_null(), "expected success, got error: {:?}", result);
     // Should be truncated
     assert!(
         result["truncated"].as_bool().unwrap_or(false),
@@ -45,10 +41,7 @@ fn parse_file_truncates_large_tree() {
     );
     // Should still have the tree
     assert!(result["tree"].is_object(), "expected tree in response");
-    assert!(
-        result["nodeCount"].as_u64().unwrap_or(0) > 500,
-        "expected nodeCount > 500"
-    );
+    assert!(result["nodeCount"].as_u64().unwrap_or(0) > 500, "expected nodeCount > 500");
 }
 
 // ---------------------------------------------------------------
@@ -75,20 +68,12 @@ fn query_truncates_large_result_set() {
         }),
     );
 
-    assert!(
-        result["error"].is_null(),
-        "expected success, got error: {:?}",
-        result
-    );
+    assert!(result["error"].is_null(), "expected success, got error: {:?}", result);
     assert!(
         result["truncated"].as_bool().unwrap_or(false),
         "expected truncated: true for query with >200 matches, got: {:?}",
         result
     );
     let returned = result["returnedCount"].as_u64().unwrap_or(0);
-    assert!(
-        returned <= 200,
-        "returnedCount {} should be <= 200",
-        returned
-    );
+    assert!(returned <= 200, "returnedCount {} should be <= 200", returned);
 }

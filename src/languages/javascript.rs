@@ -120,9 +120,7 @@ fn collect_class_members_js(
             }
             match child.kind() {
                 "method_definition" | "field_definition" | "public_field_definition" => {
-                    candidate
-                        .children
-                        .push(outline::make_candidate(&child, source));
+                    candidate.children.push(outline::make_candidate(&child, source));
                 }
                 _ => {}
             }

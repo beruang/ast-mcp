@@ -31,10 +31,7 @@ impl LineIndex {
         };
         let line_start = self.starts[line];
         let character = utf16_len(&source[line_start..byte]);
-        Position {
-            line: line as u32,
-            character: character as u32,
-        }
+        Position { line: line as u32, character: character as u32 }
     }
 
     /// Convert a Position to a byte offset. Returns an error if the position
@@ -49,11 +46,8 @@ impl LineIndex {
             )));
         }
         let line_start = self.starts[line];
-        let line_end = if line + 1 < self.starts.len() {
-            self.starts[line + 1]
-        } else {
-            source.len()
-        };
+        let line_end =
+            if line + 1 < self.starts.len() { self.starts[line + 1] } else { source.len() };
         let line_slice = &source[line_start..line_end];
         let target_utf16 = pos.character as usize;
         let mut utf16_count: usize = 0;
@@ -95,11 +89,7 @@ pub fn position_to_byte_offset(source: &str, pos: Position) -> Result<usize, Ast
 /// Convert a Tree-sitter Point (row + byte-column) to a UTF-16 Position.
 pub fn ts_point_to_position(p: tree_sitter::Point, source: &str) -> Position {
     let index = LineIndex::new(source);
-    let line_start = if p.row < index.starts.len() {
-        index.starts[p.row]
-    } else {
-        source.len()
-    };
+    let line_start = if p.row < index.starts.len() { index.starts[p.row] } else { source.len() };
     let byte_offset = (line_start + p.column).min(source.len());
     index.byte_to_position(source, byte_offset)
 }

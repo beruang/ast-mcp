@@ -19,13 +19,7 @@ fn assert_no_error(result: &Value, tool: &str) {
 }
 
 fn assert_field_present(result: &Value, field: &str, tool: &str) {
-    assert!(
-        result.get(field).is_some(),
-        "{}: missing field '{}' in {:?}",
-        tool,
-        field,
-        result
-    );
+    assert!(result.get(field).is_some(), "{}: missing field '{}' in {:?}", tool, field, result);
 }
 
 fn assert_truncated_is_bool_if_present(result: &Value, tool: &str) {
@@ -42,18 +36,8 @@ fn assert_truncated_is_bool_if_present(result: &Value, tool: &str) {
 /// Verify filePath in the response is workspace-relative (no leading /, no ..)
 fn assert_workspace_relative_path(result: &Value, tool: &str) {
     if let Some(p) = result.get("filePath").and_then(|v| v.as_str()) {
-        assert!(
-            !p.starts_with('/'),
-            "{}: filePath '{}' should be workspace-relative",
-            tool,
-            p
-        );
-        assert!(
-            !p.contains(".."),
-            "{}: filePath '{}' should not contain '..'",
-            tool,
-            p
-        );
+        assert!(!p.starts_with('/'), "{}: filePath '{}' should be workspace-relative", tool, p);
+        assert!(!p.contains(".."), "{}: filePath '{}' should not contain '..'", tool, p);
     }
 }
 
@@ -220,13 +204,7 @@ fn sweep_parse_file() {
     setup_fixtures(&dir);
     let ws = workspace(&dir);
 
-    for file in &[
-        "sample.ts",
-        "sample.tsx",
-        "sample.js",
-        "sample.jsx",
-        "sample.py",
-    ] {
+    for file in &["sample.ts", "sample.tsx", "sample.js", "sample.jsx", "sample.py"] {
         let result = tools::parse_file::handle(&ws, json!({"file_path": file}));
         assert_no_error(&result, "ast_parse_file");
         assert_workspace_relative_path(&result, "ast_parse_file");
@@ -248,13 +226,7 @@ fn sweep_file_outline() {
     setup_fixtures(&dir);
     let ws = workspace(&dir);
 
-    for file in &[
-        "sample.ts",
-        "sample.tsx",
-        "sample.js",
-        "sample.jsx",
-        "sample.py",
-    ] {
+    for file in &["sample.ts", "sample.tsx", "sample.js", "sample.jsx", "sample.py"] {
         let result = tools::file_outline::handle(&ws, json!({"file_path": file}));
         assert_no_error(&result, "ast_file_outline");
         assert_workspace_relative_path(&result, "ast_file_outline");
@@ -274,23 +246,13 @@ fn sweep_top_level_nodes() {
     setup_fixtures(&dir);
     let ws = workspace(&dir);
 
-    for file in &[
-        "sample.ts",
-        "sample.tsx",
-        "sample.js",
-        "sample.jsx",
-        "sample.py",
-    ] {
+    for file in &["sample.ts", "sample.tsx", "sample.js", "sample.jsx", "sample.py"] {
         let result = tools::top_level_nodes::handle(&ws, json!({"file_path": file}));
         assert_no_error(&result, "ast_top_level_nodes");
         assert_workspace_relative_path(&result, "ast_top_level_nodes");
         assert_truncated_is_bool_if_present(&result, "ast_top_level_nodes");
         let nodes = result["nodes"].as_array().unwrap();
-        assert!(
-            !nodes.is_empty(),
-            "{}: expected at least 1 top-level node",
-            file
-        );
+        assert!(!nodes.is_empty(), "{}: expected at least 1 top-level node", file);
         for node in nodes {
             assert!(node["kind"].is_string(), "node missing kind");
             assert!(node["range"].is_object(), "node missing range");
@@ -347,19 +309,13 @@ fn sweep_find_imports() {
     assert_workspace_relative_path(&result, "ast_find_imports");
     assert_truncated_is_bool_if_present(&result, "ast_find_imports");
     let imports = result["imports"].as_array().unwrap();
-    assert!(
-        !imports.is_empty(),
-        "expected at least 1 import in sample.ts"
-    );
+    assert!(!imports.is_empty(), "expected at least 1 import in sample.ts");
 
     // Python imports
     let result = tools::find_imports::handle(&ws, json!({"file_path": "sample.py"}));
     assert_no_error(&result, "ast_find_imports");
     let py_imports = result["imports"].as_array().unwrap();
-    assert!(
-        !py_imports.is_empty(),
-        "expected at least 1 import in sample.py"
-    );
+    assert!(!py_imports.is_empty(), "expected at least 1 import in sample.py");
 }
 
 // ---------------------------------------------------------------
@@ -376,18 +332,12 @@ fn sweep_find_exports() {
     assert_workspace_relative_path(&result, "ast_find_exports");
     assert_truncated_is_bool_if_present(&result, "ast_find_exports");
     let exports = result["exports"].as_array().unwrap();
-    assert!(
-        exports.len() >= 2,
-        "expected at least 2 exports in sample.ts"
-    );
+    assert!(exports.len() >= 2, "expected at least 2 exports in sample.ts");
 
     let result = tools::find_exports::handle(&ws, json!({"file_path": "sample.py"}));
     assert_no_error(&result, "ast_find_exports");
     let py_exports = result["exports"].as_array().unwrap();
-    assert!(
-        !py_exports.is_empty(),
-        "expected at least 1 export in sample.py"
-    );
+    assert!(!py_exports.is_empty(), "expected at least 1 export in sample.py");
 }
 
 // ---------------------------------------------------------------
@@ -405,12 +355,7 @@ fn sweep_find_functions() {
         assert_workspace_relative_path(&result, "ast_find_functions");
         assert_truncated_is_bool_if_present(&result, "ast_find_functions");
         let funcs = result["functions"].as_array().unwrap();
-        assert!(
-            funcs.len() >= 2,
-            "{}: expected at least 2 functions, got {}",
-            file,
-            funcs.len()
-        );
+        assert!(funcs.len() >= 2, "{}: expected at least 2 functions, got {}", file, funcs.len());
     }
 }
 
@@ -429,12 +374,7 @@ fn sweep_find_classes() {
         assert_workspace_relative_path(&result, "ast_find_classes");
         assert_truncated_is_bool_if_present(&result, "ast_find_classes");
         let classes = result["classes"].as_array().unwrap();
-        assert!(
-            !classes.is_empty(),
-            "{}: expected at least 1 class, got {}",
-            file,
-            classes.len()
-        );
+        assert!(!classes.is_empty(), "{}: expected at least 1 class, got {}", file, classes.len());
     }
 }
 
@@ -454,11 +394,7 @@ fn sweep_chunk_file() {
         assert_workspace_relative_path(&result, "ast_chunk_file");
         assert_truncated_is_bool_if_present(&result, "ast_chunk_file");
         let chunks = result["chunks"].as_array().unwrap();
-        assert!(
-            !chunks.is_empty(),
-            "strategy {}: expected at least 1 chunk",
-            strategy
-        );
+        assert!(!chunks.is_empty(), "strategy {}: expected at least 1 chunk", strategy);
         for chunk in chunks {
             assert!(chunk["kind"].is_string(), "chunk missing kind");
             assert!(chunk["text"].is_string(), "chunk missing text");
@@ -484,11 +420,7 @@ fn sweep_enclosing_node() {
     assert_no_error(&result, "ast_enclosing_node");
     assert_workspace_relative_path(&result, "ast_enclosing_node");
     assert_truncated_is_bool_if_present(&result, "ast_enclosing_node");
-    assert!(
-        result["ancestors"].is_array(),
-        "expected ancestors array, got {:?}",
-        result
-    );
+    assert!(result["ancestors"].is_array(), "expected ancestors array, got {:?}", result);
     let ancestors = result["ancestors"].as_array().unwrap();
     assert!(!ancestors.is_empty(), "expected at least 1 ancestor");
 }
@@ -503,12 +435,7 @@ fn sweep_tool_list_count() {
     let dir = tempfile::tempdir().unwrap();
     let ws = workspace(&dir);
     let tool_specs = register_tools::tools(&ws);
-    assert_eq!(
-        tool_specs.len(),
-        12,
-        "expected exactly 12 tools, got {}",
-        tool_specs.len()
-    );
+    assert_eq!(tool_specs.len(), 12, "expected exactly 12 tools, got {}", tool_specs.len());
 
     // Every tool must have a name, description, and inputSchema
     for spec in &tool_specs {
@@ -554,35 +481,20 @@ fn sweep_dispatch_all_tools_return_json() {
         ("ast_parse_file", json!({"file_path": "sample.ts"})),
         ("ast_file_outline", json!({"file_path": "sample.ts"})),
         ("ast_top_level_nodes", json!({"file_path": "sample.ts"})),
-        (
-            "ast_query",
-            json!({"file_path": "sample.ts", "query": "(function_declaration) @f"}),
-        ),
+        ("ast_query", json!({"file_path": "sample.ts", "query": "(function_declaration) @f"})),
         ("ast_find_imports", json!({"file_path": "sample.ts"})),
         ("ast_find_exports", json!({"file_path": "sample.ts"})),
         ("ast_find_functions", json!({"file_path": "sample.ts"})),
         ("ast_find_classes", json!({"file_path": "sample.ts"})),
         ("ast_chunk_file", json!({"file_path": "sample.ts"})),
-        (
-            "ast_enclosing_node",
-            json!({"file_path": "sample.ts", "line": 0, "character": 0}),
-        ),
+        ("ast_enclosing_node", json!({"file_path": "sample.ts", "line": 0, "character": 0})),
     ];
 
     for (name, args) in cases {
         let result = ast_mcp::mcp::register_tools::dispatch(name, args.clone(), &ws);
-        assert!(
-            result.is_some(),
-            "dispatch({}) returned None — tool not registered",
-            name
-        );
+        assert!(result.is_some(), "dispatch({}) returned None — tool not registered", name);
         let val = result.unwrap();
-        assert!(
-            val.is_object(),
-            "dispatch({}) returned non-object: {:?}",
-            name,
-            val
-        );
+        assert!(val.is_object(), "dispatch({}) returned non-object: {:?}", name, val);
         // Must be valid JSON when serialized
         let _json_str = serde_json::to_string(&val)
             .unwrap_or_else(|e| panic!("dispatch({}) result is not valid JSON: {}", name, e));

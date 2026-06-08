@@ -95,11 +95,6 @@ fn fuzz_smoke_valid_inputs() {
             .unwrap_or_else(|| panic!("no parser for {}", name));
 
         let result = parser::parse::parse_source(source, entry.language);
-        assert!(
-            result.is_ok(),
-            "failed to parse valid {} input: {:?}",
-            name,
-            result
-        );
+        assert!(result.is_ok(), "failed to parse valid {} input: {:?}", name, result);
     }
 }

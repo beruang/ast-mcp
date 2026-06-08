@@ -68,9 +68,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 
     let opts = ChunkOptions {
         strategy,
-        max_results: input
-            .max_results
-            .unwrap_or(crate::safety::limits::MAX_RESULTS),
+        max_results: input.max_results.unwrap_or(crate::safety::limits::MAX_RESULTS),
         max_lines_per_chunk: input
             .max_lines_per_chunk
             .unwrap_or(crate::safety::limits::MAX_CHUNK_LINES),
@@ -94,9 +92,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 }
 
 fn extension_to_language(path: &str) -> Option<LanguageId> {
-    let ext = std::path::Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())?;
+    let ext = std::path::Path::new(path).extension().and_then(|s| s.to_str())?;
     let dotted = format!(".{}", ext);
     parser::registry::for_extension(&dotted).map(|d| d.language)
 }

@@ -22,10 +22,7 @@ impl Range {
         {
             self
         } else {
-            Range {
-                start: self.end,
-                end: self.start,
-            }
+            Range { start: self.end, end: self.start }
         }
     }
 }

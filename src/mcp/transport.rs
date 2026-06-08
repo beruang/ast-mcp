@@ -89,11 +89,7 @@ pub async fn run(workspace: Workspace) -> anyhow::Result<()> {
             }
 
             "tools/call" => {
-                let name = req
-                    .params
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let name = req.params.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 let arguments = req.params.get("arguments").cloned().unwrap_or(json!({}));
 
                 match dispatch(name, arguments, &workspace) {
@@ -124,9 +120,7 @@ pub async fn run(workspace: Workspace) -> anyhow::Result<()> {
             _ => {
                 let err = error_envelope(-32601, &format!("Method not found: {}", req.method));
                 let mut err_obj = err;
-                let id = req_id
-                    .as_i64()
-                    .or_else(|| req_id.as_str().and_then(|s| s.parse().ok()));
+                let id = req_id.as_i64().or_else(|| req_id.as_str().and_then(|s| s.parse().ok()));
                 if let Some(id) = id {
                     if let Some(obj) = err_obj.as_object_mut() {
                         obj.insert("id".to_string(), serde_json::json!(id));

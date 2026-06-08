@@ -67,10 +67,7 @@ pub fn run_query(
             })
             .collect();
         captures.sort_by(|a, b| a.name.cmp(&b.name));
-        matches.push(AstQueryMatch {
-            pattern_index: Some(m.pattern_index as u32),
-            captures,
-        });
+        matches.push(AstQueryMatch { pattern_index: Some(m.pattern_index as u32), captures });
     }
     matches
 }

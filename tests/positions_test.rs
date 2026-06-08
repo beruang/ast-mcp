@@ -5,29 +5,11 @@ use ast_mcp::shared::position::Position;
 fn line_index_byte_to_position_multiline() {
     let source = "line1\nline2\nline3";
     // Verify positions on each line via public API
-    assert_eq!(
-        positions::byte_offset_to_position(source, 0),
-        Position {
-            line: 0,
-            character: 0
-        }
-    );
+    assert_eq!(positions::byte_offset_to_position(source, 0), Position { line: 0, character: 0 });
     // "line2" starts at byte 6 (after "line1\n")
-    assert_eq!(
-        positions::byte_offset_to_position(source, 6),
-        Position {
-            line: 1,
-            character: 0
-        }
-    );
+    assert_eq!(positions::byte_offset_to_position(source, 6), Position { line: 1, character: 0 });
     // "line3" starts at byte 12 (after "line1\nline2\n")
-    assert_eq!(
-        positions::byte_offset_to_position(source, 12),
-        Position {
-            line: 2,
-            character: 0
-        }
-    );
+    assert_eq!(positions::byte_offset_to_position(source, 12), Position { line: 2, character: 0 });
 }
 
 #[test]
@@ -45,25 +27,13 @@ fn byte_to_position_ascii() {
 fn ascii_round_trip() {
     let source = "hello\nworld\n";
     let pos = positions::byte_offset_to_position(source, 0);
-    assert_eq!(
-        pos,
-        Position {
-            line: 0,
-            character: 0
-        }
-    );
+    assert_eq!(pos, Position { line: 0, character: 0 });
     let byte = positions::position_to_byte_offset(source, pos).unwrap();
     assert_eq!(byte, 0);
 
     // "world" starts at byte 6 (after "hello\n")
     let pos = positions::byte_offset_to_position(source, 6);
-    assert_eq!(
-        pos,
-        Position {
-            line: 1,
-            character: 0
-        }
-    );
+    assert_eq!(pos, Position { line: 1, character: 0 });
     let byte = positions::position_to_byte_offset(source, pos).unwrap();
     assert_eq!(byte, 6);
 }
@@ -111,10 +81,7 @@ fn surrogate_pair_round_trip() {
     assert_eq!(byte, 1);
 
     // Position at character 3 (after the surrogate pair)
-    let pos = Position {
-        line: 0,
-        character: 3,
-    };
+    let pos = Position { line: 0, character: 3 };
     let byte = positions::position_to_byte_offset(source, pos).unwrap();
     assert_eq!(byte, 5); // byte 5 = start of b
     let round = positions::byte_offset_to_position(source, byte);
@@ -124,13 +91,7 @@ fn surrogate_pair_round_trip() {
 #[test]
 fn out_of_bounds_line() {
     let source = "one\ntwo";
-    let result = positions::position_to_byte_offset(
-        source,
-        Position {
-            line: 5,
-            character: 0,
-        },
-    );
+    let result = positions::position_to_byte_offset(source, Position { line: 5, character: 0 });
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert_eq!(err.code(), "invalid_position");
@@ -139,13 +100,7 @@ fn out_of_bounds_line() {
 #[test]
 fn out_of_bounds_character() {
     let source = "hello";
-    let result = positions::position_to_byte_offset(
-        source,
-        Position {
-            line: 0,
-            character: 20,
-        },
-    );
+    let result = positions::position_to_byte_offset(source, Position { line: 0, character: 20 });
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert_eq!(err.code(), "invalid_position");
@@ -156,22 +111,10 @@ fn multi_line_position() {
     let source = "line1\nline2\nline3";
     // "line2" starts at byte 6
     let pos = positions::byte_offset_to_position(source, 6);
-    assert_eq!(
-        pos,
-        Position {
-            line: 1,
-            character: 0
-        }
-    );
+    assert_eq!(pos, Position { line: 1, character: 0 });
     // "line3" starts at byte 12
     let pos = positions::byte_offset_to_position(source, 12);
-    assert_eq!(
-        pos,
-        Position {
-            line: 2,
-            character: 0
-        }
-    );
+    assert_eq!(pos, Position { line: 2, character: 0 });
 }
 
 #[test]
@@ -186,10 +129,7 @@ fn byte_to_position_at_end() {
 fn position_to_byte_at_end_of_line() {
     let source = "hello\nworld";
     // Position at the newline
-    let pos = Position {
-        line: 0,
-        character: 5,
-    };
+    let pos = Position { line: 0, character: 5 };
     let byte = positions::position_to_byte_offset(source, pos).unwrap();
     assert_eq!(byte, 5); // byte 5 is '\n'
     assert_eq!(&source[byte..byte + 1], "\n");

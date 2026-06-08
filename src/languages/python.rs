@@ -128,9 +128,7 @@ fn collect_class_members_py(
                 }
                 "class_definition" => {
                     // Nested class.
-                    candidate
-                        .children
-                        .push(outline::make_candidate(&child, source));
+                    candidate.children.push(outline::make_candidate(&child, source));
                 }
                 _ => {}
             }

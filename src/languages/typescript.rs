@@ -140,9 +140,7 @@ fn collect_class_members_ts(
                 | "property_signature"
                 | "index_signature"
                 | "constructor_signature" => {
-                    candidate
-                        .children
-                        .push(outline::make_candidate(&child, source));
+                    candidate.children.push(outline::make_candidate(&child, source));
                 }
                 _ => {}
             }

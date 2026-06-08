@@ -20,11 +20,7 @@ pub struct EnclosingOptions {
 
 impl Default for EnclosingOptions {
     fn default() -> Self {
-        EnclosingOptions {
-            kinds: None,
-            include_source_text: false,
-            max_ancestors: 64,
-        }
+        EnclosingOptions { kinds: None, include_source_text: false, max_ancestors: 64 }
     }
 }
 
@@ -67,9 +63,7 @@ pub fn enclosing_node(
     let byte_offset = byte_offset.min(source.len());
 
     // Find the deepest node that contains the byte offset.
-    let deepest = root
-        .descendant_for_byte_range(byte_offset, byte_offset)
-        .unwrap_or(root);
+    let deepest = root.descendant_for_byte_range(byte_offset, byte_offset).unwrap_or(root);
 
     let max_ancestors = opts.max_ancestors.min(64);
 
@@ -138,10 +132,7 @@ fn node_to_summary(node: &tree_sitter::Node, source: &str, include_text: bool) -
         name,
         start_byte: node.start_byte(),
         end_byte: node.end_byte(),
-        range: Range {
-            start: start_pos,
-            end: end_pos,
-        },
+        range: Range { start: start_pos, end: end_pos },
         source_text,
     }
 }
@@ -157,10 +148,7 @@ fn extract_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
                 | "property_identifier"
                 | "shorthand_property_identifier"
                 | "statement_identifier" => {
-                    return child
-                        .utf8_text(source.as_bytes())
-                        .ok()
-                        .map(|s| s.to_string());
+                    return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
                 }
                 _ => {
                     // Recurse one level for unwrapped nodes.

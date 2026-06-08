@@ -118,11 +118,7 @@ fn candidate_to_outline_node(
     depth: usize,
     truncated: &mut bool,
 ) -> OutlineNode {
-    let range = if opts.include_ranges {
-        Some(c.range)
-    } else {
-        None
-    };
+    let range = if opts.include_ranges { Some(c.range) } else { None };
 
     let children: Option<Vec<OutlineNode>> = if depth < opts.max_depth && !c.children.is_empty() {
         let mut kids: Vec<OutlineNode> = Vec::new();
@@ -131,13 +127,7 @@ fn candidate_to_outline_node(
                 *truncated = true;
                 break;
             }
-            kids.push(candidate_to_outline_node(
-                child,
-                source,
-                opts,
-                depth + 1,
-                truncated,
-            ));
+            kids.push(candidate_to_outline_node(child, source, opts, depth + 1, truncated));
         }
         if kids.is_empty() {
             None
@@ -151,12 +141,7 @@ fn candidate_to_outline_node(
         None
     };
 
-    OutlineNode {
-        kind: c.kind.clone(),
-        name: c.name.clone(),
-        range,
-        children,
-    }
+    OutlineNode { kind: c.kind.clone(), name: c.name.clone(), range, children }
 }
 
 /// Append a human-readable line (and its children, indented) to `lines`.
@@ -182,10 +167,7 @@ fn node_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
                 | "property_identifier"
                 | "shorthand_property_identifier"
                 | "statement_identifier" => {
-                    return child
-                        .utf8_text(source.as_bytes())
-                        .ok()
-                        .map(|s| s.to_string());
+                    return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
                 }
                 _ => {
                     // Try deeper for unwrapped declarations.
@@ -209,10 +191,7 @@ fn import_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
         }
         if child.kind() == "string" || child.kind() == "string_fragment" {
             // Python: string inside import_statement
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
         if child.kind() == "import_clause" {
             // TS/JS: import clause contains the identifier or namespace
@@ -225,16 +204,10 @@ fn import_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
     let mut cursor2 = node.walk();
     for child in node.children(&mut cursor2) {
         if child.kind() == "string" || child.kind() == "string_fragment" {
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
         if child.kind() == "dotted_name" {
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
     }
     node_name(node, source)
@@ -276,11 +249,8 @@ fn get_outline_candidates(
 /// Uses `node_name` (or `import_name` for imports) to extract the display name.
 pub fn make_candidate(node: &tree_sitter::Node, source: &str) -> OutlineCandidate {
     let kind = node.kind().to_string();
-    let name = if is_import_kind(&kind) {
-        import_name(node, source)
-    } else {
-        node_name(node, source)
-    };
+    let name =
+        if is_import_kind(&kind) { import_name(node, source) } else { node_name(node, source) };
 
     let start_pos = ts_point_to_position(node.start_position(), source);
     let end_pos = ts_point_to_position(node.end_position(), source);
@@ -288,10 +258,7 @@ pub fn make_candidate(node: &tree_sitter::Node, source: &str) -> OutlineCandidat
     OutlineCandidate {
         kind,
         name,
-        range: Range {
-            start: start_pos,
-            end: end_pos,
-        },
+        range: Range { start: start_pos, end: end_pos },
         children: Vec::new(),
     }
 }

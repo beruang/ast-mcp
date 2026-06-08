@@ -22,10 +22,7 @@ fn list_supported_languages_returns_five() {
     let result = tools::list_supported_languages::handle(json!({}));
     let langs = result["languages"].as_array().unwrap();
     assert_eq!(langs.len(), 5);
-    let names: Vec<&str> = langs
-        .iter()
-        .map(|l| l["language"].as_str().unwrap())
-        .collect();
+    let names: Vec<&str> = langs.iter().map(|l| l["language"].as_str().unwrap()).collect();
     assert!(names.contains(&"typescript"));
     assert!(names.contains(&"python"));
     assert!(names.contains(&"javascript"));

@@ -157,10 +157,7 @@ fn extract_ts_js_export(node: &tree_sitter::Node, source: &str) -> Option<AstExp
             "call_expression" | "identifier" if is_default && kind == ExportKind::Unknown => {
                 // `export default <expr>` or `export default <id>`
                 kind = ExportKind::Default;
-                name = child
-                    .utf8_text(source.as_bytes())
-                    .ok()
-                    .map(|s| s.to_string());
+                name = child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
             }
             _ => {}
         }
@@ -240,10 +237,7 @@ fn extract_identifier_name(node: &tree_sitter::Node, source: &str) -> Option<Str
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {
-                return child
-                    .utf8_text(source.as_bytes())
-                    .ok()
-                    .map(|s| s.to_string());
+                return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
             }
             // Recurse for decorated/async/unwrapped nodes
             if child.is_named() {

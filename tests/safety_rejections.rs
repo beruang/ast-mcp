@@ -69,10 +69,7 @@ fn reject_traversal_dotdot() {
     for tool in FILE_TOOLS {
         let result = call(tool, &ws, "../outside.ts");
         let err = result.get("error").unwrap_or_else(|| {
-            panic!(
-                "{}: expected error for ../outside.ts, got: {:?}",
-                tool, result
-            )
+            panic!("{}: expected error for ../outside.ts, got: {:?}", tool, result)
         });
         assert_eq!(
             err["code"], "path_outside_workspace",
@@ -93,10 +90,7 @@ fn reject_absolute_path() {
     for tool in FILE_TOOLS {
         let result = call(tool, &ws, "/etc/passwd");
         let err = result.get("error").unwrap_or_else(|| {
-            panic!(
-                "{}: expected error for /etc/passwd, got: {:?}",
-                tool, result
-            )
+            panic!("{}: expected error for /etc/passwd, got: {:?}", tool, result)
         });
         assert_eq!(
             err["code"], "path_outside_workspace",
@@ -117,10 +111,7 @@ fn reject_missing_file() {
     for tool in FILE_TOOLS {
         let result = call(tool, &ws, "does_not_exist.ts");
         let err = result.get("error").unwrap_or_else(|| {
-            panic!(
-                "{}: expected error for missing file, got: {:?}",
-                tool, result
-            )
+            panic!("{}: expected error for missing file, got: {:?}", tool, result)
         });
         assert_eq!(
             err["code"], "file_not_found",
@@ -194,10 +185,7 @@ fn reject_file_too_large() {
     drop(f);
     // Sanity check: the file must actually exceed the limit
     let sz = fs::metadata(&big_path).unwrap().len();
-    assert!(
-        sz > MAX_FILE_BYTES,
-        "test file is {sz} bytes, expected > {MAX_FILE_BYTES}"
-    );
+    assert!(sz > MAX_FILE_BYTES, "test file is {sz} bytes, expected > {MAX_FILE_BYTES}");
     let ws = workspace(&dir);
 
     // Only test tools that go through the full resolve + ensure_under_size path.
@@ -211,10 +199,7 @@ fn reject_file_too_large() {
 
     let result = tools::file_outline::handle(&ws, json!({"file_path": "big.ts"}));
     let err = result.get("error").unwrap_or_else(|| {
-        panic!(
-            "expected error for too-large file (outline), got: {:?}",
-            result
-        )
+        panic!("expected error for too-large file (outline), got: {:?}", result)
     });
     assert_eq!(err["code"], "file_too_large");
 }

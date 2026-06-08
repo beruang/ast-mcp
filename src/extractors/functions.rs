@@ -132,11 +132,7 @@ fn collect_ts_js_functions(
                 extract_ts_js_function(
                     &child,
                     source,
-                    if is_generator {
-                        FunctionKind::Generator
-                    } else {
-                        FunctionKind::Function
-                    },
+                    if is_generator { FunctionKind::Generator } else { FunctionKind::Function },
                     parent_exported,
                     parent_name,
                     opts,
@@ -284,11 +280,8 @@ fn extract_ts_js_function(
         None
     };
 
-    let return_type_text = if opts.include_return_type {
-        extract_ts_js_return_type(node, source)
-    } else {
-        None
-    };
+    let return_type_text =
+        if opts.include_return_type { extract_ts_js_return_type(node, source) } else { None };
 
     let signature_text = if opts.include_signature {
         Some(trimmed_node_text(node, source, limits::MAX_TEXT_BYTES))
@@ -335,11 +328,8 @@ fn extract_ts_js_parameters(node: &tree_sitter::Node, source: &str) -> Vec<AstPa
         // Extract parameter name from the pattern
         let name = extract_ts_js_param_name(&child, source);
         let type_text = extract_ts_js_param_type(&child, source);
-        let default_value_text = if is_optional {
-            extract_ts_js_default_value(&child, source)
-        } else {
-            None
-        };
+        let default_value_text =
+            if is_optional { extract_ts_js_default_value(&child, source) } else { None };
 
         // Also check for field "value" which may contain the default
         let default_value_text = default_value_text.or_else(|| {
@@ -348,12 +338,7 @@ fn extract_ts_js_parameters(node: &tree_sitter::Node, source: &str) -> Vec<AstPa
                 .and_then(|v| v.utf8_text(source.as_bytes()).ok().map(|s| s.to_string()))
         });
 
-        params.push(AstParameter {
-            name,
-            type_text,
-            optional: is_optional,
-            default_value_text,
-        });
+        params.push(AstParameter { name, type_text, optional: is_optional, default_value_text });
     }
 
     params
@@ -369,10 +354,7 @@ fn extract_ts_js_param_name(node: &tree_sitter::Node, source: &str) -> String {
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {
-                return child
-                    .utf8_text(source.as_bytes())
-                    .unwrap_or("<unknown>")
-                    .to_string();
+                return child.utf8_text(source.as_bytes()).unwrap_or("<unknown>").to_string();
             }
         }
     }
@@ -381,10 +363,7 @@ fn extract_ts_js_param_name(node: &tree_sitter::Node, source: &str) -> String {
 
 fn extract_ts_js_param_type(node: &tree_sitter::Node, source: &str) -> Option<String> {
     if let Some(type_node) = node.child_by_field_name("type") {
-        type_node
-            .utf8_text(source.as_bytes())
-            .ok()
-            .map(|s| s.to_string())
+        type_node.utf8_text(source.as_bytes()).ok().map(|s| s.to_string())
     } else {
         None
     }
@@ -392,10 +371,7 @@ fn extract_ts_js_param_type(node: &tree_sitter::Node, source: &str) -> Option<St
 
 fn extract_ts_js_default_value(node: &tree_sitter::Node, source: &str) -> Option<String> {
     if let Some(value) = node.child_by_field_name("value") {
-        value
-            .utf8_text(source.as_bytes())
-            .ok()
-            .map(|s| s.to_string())
+        value.utf8_text(source.as_bytes()).ok().map(|s| s.to_string())
     } else {
         None
     }
@@ -531,11 +507,8 @@ fn extract_py_function(
         None
     };
 
-    let return_type_text = if opts.include_return_type {
-        extract_py_return_type(node, source)
-    } else {
-        None
-    };
+    let return_type_text =
+        if opts.include_return_type { extract_py_return_type(node, source) } else { None };
 
     let signature_text = if opts.include_signature {
         Some(trimmed_node_text(node, source, limits::MAX_TEXT_BYTES))
@@ -577,10 +550,7 @@ fn extract_py_parameters(node: &tree_sitter::Node, source: &str) -> Vec<AstParam
             "identifier" => {
                 // Simple parameter without type/default
                 params.push(AstParameter {
-                    name: child
-                        .utf8_text(source.as_bytes())
-                        .unwrap_or("<unknown>")
-                        .to_string(),
+                    name: child.utf8_text(source.as_bytes()).unwrap_or("<unknown>").to_string(),
                     type_text: None,
                     optional: false,
                     default_value_text: None,
@@ -629,10 +599,7 @@ fn extract_py_param_name(node: &tree_sitter::Node, source: &str) -> String {
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {
-                return child
-                    .utf8_text(source.as_bytes())
-                    .unwrap_or("<unknown>")
-                    .to_string();
+                return child.utf8_text(source.as_bytes()).unwrap_or("<unknown>").to_string();
             }
         }
     }
@@ -652,10 +619,7 @@ fn extract_py_param_type(node: &tree_sitter::Node, source: &str) -> Option<Strin
             continue;
         }
         if colon_seen && child.is_named() {
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
     }
     None
@@ -674,10 +638,7 @@ fn extract_py_default_value(node: &tree_sitter::Node, source: &str) -> Option<St
             continue;
         }
         if eq_seen && child.is_named() {
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
     }
     None
@@ -726,10 +687,7 @@ fn extract_identifier_name(node: &tree_sitter::Node, source: &str) -> Option<Str
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {
-                return child
-                    .utf8_text(source.as_bytes())
-                    .ok()
-                    .map(|s| s.to_string());
+                return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
             }
         }
     }

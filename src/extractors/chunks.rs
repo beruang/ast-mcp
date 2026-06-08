@@ -78,11 +78,7 @@ pub fn chunk_file(
         ChunkStrategy::MaxLinesWithAstBoundaries => "max_lines_with_ast_boundaries",
     };
 
-    Ok(ChunkResult {
-        chunks,
-        strategy: strategy_name.to_string(),
-        total_chunks: total,
-    })
+    Ok(ChunkResult { chunks, strategy: strategy_name.to_string(), total_chunks: total })
 }
 
 // ---------------------------------------------------------------------------
@@ -314,11 +310,7 @@ fn chunk_max_lines(tree: &Tree, source: &str, opts: &ChunkOptions) -> Vec<AstChu
         if !child.is_named() {
             continue;
         }
-        boundaries.push((
-            child.start_byte(),
-            child.end_byte(),
-            child.kind().to_string(),
-        ));
+        boundaries.push((child.start_byte(), child.end_byte(), child.kind().to_string()));
     }
 
     if boundaries.is_empty() {
@@ -380,12 +372,8 @@ fn chunk_max_lines(tree: &Tree, source: &str, opts: &ChunkOptions) -> Vec<AstChu
             opts.max_bytes_per_chunk,
         );
         let start_line = byte_to_line(source, current_start);
-        let end_line = byte_to_line(
-            source,
-            last_byte
-                .saturating_sub(1)
-                .min(source_len.saturating_sub(1)),
-        );
+        let end_line =
+            byte_to_line(source, last_byte.saturating_sub(1).min(source_len.saturating_sub(1)));
 
         chunks.push(AstChunk {
             start_line: start_line as u32,

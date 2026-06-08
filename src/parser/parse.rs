@@ -35,15 +35,7 @@ pub fn parse_source(source: &str, lang: LanguageId) -> Result<(Tree, ParseStatus
     let root_kind = root.kind().to_string();
     let node_count = count_nodes(&root);
 
-    Ok((
-        tree,
-        ParseStatus {
-            has_syntax_error,
-            root_kind,
-            node_count,
-            parse_time_ms,
-        },
-    ))
+    Ok((tree, ParseStatus { has_syntax_error, root_kind, node_count, parse_time_ms }))
 }
 
 fn count_nodes(n: &tree_sitter::Node) -> usize {

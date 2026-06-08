@@ -18,11 +18,7 @@ fn query_ts_function_declarations() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let matches = result["matches"].as_array().unwrap();
-    assert!(
-        matches.len() >= 2,
-        "expected at least 2 function matches, got {}",
-        matches.len()
-    );
+    assert!(matches.len() >= 2, "expected at least 2 function matches, got {}", matches.len());
     // Each match should have captures
     for m in matches {
         assert!(m["captures"].is_array());
@@ -41,11 +37,7 @@ fn query_python_function_definitions() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let matches = result["matches"].as_array().unwrap();
-    assert!(
-        matches.len() >= 2,
-        "expected at least 2 function matches, got {}",
-        matches.len()
-    );
+    assert!(matches.len() >= 2, "expected at least 2 function matches, got {}", matches.len());
     for m in matches {
         assert!(m["captures"].is_array());
     }
@@ -61,11 +53,7 @@ fn query_invalid_syntax() {
             "query": "((((("
         }),
     );
-    assert!(
-        result["error"].is_object(),
-        "expected error object, got: {:?}",
-        result
-    );
+    assert!(result["error"].is_object(), "expected error object, got: {:?}", result);
     assert_eq!(
         result["error"]["code"],
         json!("query_invalid"),
@@ -87,11 +75,7 @@ fn query_empty_returns_error() {
             "query": ""
         }),
     );
-    assert!(
-        result["error"].is_object(),
-        "expected error object, got: {:?}",
-        result
-    );
+    assert!(result["error"].is_object(), "expected error object, got: {:?}", result);
     assert_eq!(result["error"]["code"], json!("query_invalid"));
 }
 
@@ -128,10 +112,7 @@ fn query_returns_metadata() {
         }),
     );
     assert!(result["error"].is_null());
-    assert_eq!(
-        result["filePath"],
-        json!("tests/fixtures/query/functions.ts")
-    );
+    assert_eq!(result["filePath"], json!("tests/fixtures/query/functions.ts"));
     assert_eq!(result["language"], json!("typescript"));
     assert!(!result["query"].as_str().unwrap().is_empty());
     assert!(result["returnedCount"].as_u64().is_some());

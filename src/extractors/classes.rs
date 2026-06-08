@@ -163,17 +163,11 @@ fn extract_ts_js_class(
 
     let name = extract_identifier_name(node, source);
 
-    let extends_text = if opts.include_extends {
-        extract_ts_js_extends(node, source)
-    } else {
-        None
-    };
+    let extends_text =
+        if opts.include_extends { extract_ts_js_extends(node, source) } else { None };
 
-    let implements_text = if opts.include_implements {
-        extract_ts_js_implements(node, source)
-    } else {
-        None
-    };
+    let implements_text =
+        if opts.include_implements { extract_ts_js_implements(node, source) } else { None };
 
     let decorators_text = if opts.include_decorators {
         let decs = extract_ts_js_decorators(node, source);
@@ -296,21 +290,13 @@ fn extract_ts_js_methods(node: &tree_sitter::Node, source: &str) -> Vec<AstClass
             "method_definition" => {
                 let (method_name, method_kind) = extract_ts_js_method_info(&child, source);
                 let range = make_range(&child, source);
-                methods.push(AstClassMethod {
-                    name: method_name,
-                    kind: method_kind,
-                    range,
-                });
+                methods.push(AstClassMethod { name: method_name, kind: method_kind, range });
             }
             "public_field_definition" | "field_definition" => {
                 // Property/field — not a method per se
                 if let Some(name) = extract_identifier_name(&child, source) {
                     let range = make_range(&child, source);
-                    methods.push(AstClassMethod {
-                        name,
-                        kind: ClassMethodKind::Unknown,
-                        range,
-                    });
+                    methods.push(AstClassMethod { name, kind: ClassMethodKind::Unknown, range });
                 }
             }
             _ => {}
@@ -400,11 +386,7 @@ fn extract_py_class(
     let name = extract_identifier_name(node, source);
     let is_abstract = false; // Python doesn't have abstract keyword
 
-    let extends_text = if opts.include_extends {
-        extract_py_bases(node, source)
-    } else {
-        None
-    };
+    let extends_text = if opts.include_extends { extract_py_bases(node, source) } else { None };
 
     let decorators_text: Option<Vec<String>> = None; // Decorators are on outer decorated_definition
 
@@ -449,10 +431,7 @@ fn extract_py_bases(node: &tree_sitter::Node, source: &str) -> Option<String> {
             continue;
         }
         if past_name && child.kind() == "argument_list" {
-            return child
-                .utf8_text(source.as_bytes())
-                .ok()
-                .map(|s| s.to_string());
+            return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
         }
     }
     None
@@ -544,10 +523,7 @@ fn extract_identifier_name(node: &tree_sitter::Node, source: &str) -> Option<Str
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {
-                return child
-                    .utf8_text(source.as_bytes())
-                    .ok()
-                    .map(|s| s.to_string());
+                return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
             }
         }
     }

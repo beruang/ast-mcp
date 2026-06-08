@@ -35,14 +35,7 @@ pub fn top_level_nodes(tree: &Tree, source: &str) -> Vec<TopLevelNode> {
         let start_pos = ts_point_to_position(child.start_position(), source);
         let end_pos = ts_point_to_position(child.end_position(), source);
 
-        nodes.push(TopLevelNode {
-            kind,
-            name,
-            range: Range {
-                start: start_pos,
-                end: end_pos,
-            },
-        });
+        nodes.push(TopLevelNode { kind, name, range: Range { start: start_pos, end: end_pos } });
     }
 
     nodes
@@ -59,10 +52,7 @@ fn extract_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
                 | "property_identifier"
                 | "shorthand_property_identifier"
                 | "statement_identifier" => {
-                    return child
-                        .utf8_text(source.as_bytes())
-                        .ok()
-                        .map(|s| s.to_string());
+                    return child.utf8_text(source.as_bytes()).ok().map(|s| s.to_string());
                 }
                 _ => {
                     // Recurse one level for unwrapped nodes.

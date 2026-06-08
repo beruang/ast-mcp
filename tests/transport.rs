@@ -20,10 +20,7 @@ async fn tools_list_returns_health_check() {
         "method": "initialize",
         "params": {}
     });
-    stdin
-        .write_all(serde_json::to_string(&init_req).unwrap().as_bytes())
-        .await
-        .unwrap();
+    stdin.write_all(serde_json::to_string(&init_req).unwrap().as_bytes()).await.unwrap();
     stdin.write_all(b"\n").await.unwrap();
 
     // Send tools/list
@@ -33,10 +30,7 @@ async fn tools_list_returns_health_check() {
         "method": "tools/list",
         "params": {}
     });
-    stdin
-        .write_all(serde_json::to_string(&list_req).unwrap().as_bytes())
-        .await
-        .unwrap();
+    stdin.write_all(serde_json::to_string(&list_req).unwrap().as_bytes()).await.unwrap();
     stdin.write_all(b"\n").await.unwrap();
     drop(stdin);
 
@@ -47,12 +41,9 @@ async fn tools_list_returns_health_check() {
     let resp: serde_json::Value = serde_json::from_str(first_line).expect("valid JSON");
 
     // Assert tools list contains ast_health_check
-    let tools = resp
-        .pointer("/result/tools")
-        .and_then(|t| t.as_array())
-        .expect("tools array in result");
-    let has_health_check = tools
-        .iter()
-        .any(|t| t.get("name").and_then(|n| n.as_str()) == Some("ast_health_check"));
+    let tools =
+        resp.pointer("/result/tools").and_then(|t| t.as_array()).expect("tools array in result");
+    let has_health_check =
+        tools.iter().any(|t| t.get("name").and_then(|n| n.as_str()) == Some("ast_health_check"));
     assert!(has_health_check, "ast_health_check must be in tools list");
 }

@@ -61,9 +61,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
     };
 
     let opts = ClassOptions {
-        max_results: input
-            .max_results
-            .unwrap_or(crate::safety::limits::MAX_RESULTS),
+        max_results: input.max_results.unwrap_or(crate::safety::limits::MAX_RESULTS),
         include_methods: input.include_methods.unwrap_or(true),
         include_extends: input.include_extends.unwrap_or(true),
         include_implements: input.include_implements.unwrap_or(true),
@@ -81,9 +79,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 }
 
 fn extension_to_language(path: &str) -> Option<LanguageId> {
-    let ext = std::path::Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())?;
+    let ext = std::path::Path::new(path).extension().and_then(|s| s.to_str())?;
     let dotted = format!(".{}", ext);
     parser::registry::for_extension(&dotted).map(|d| d.language)
 }

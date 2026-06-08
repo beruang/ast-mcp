@@ -19,16 +19,9 @@ fn find_functions_typescript_all_forms() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let functions = result["functions"].as_array().unwrap();
-    assert!(
-        functions.len() >= 5,
-        "expected at least 5 functions, got {}",
-        functions.len()
-    );
+    assert!(functions.len() >= 5, "expected at least 5 functions, got {}", functions.len());
 
-    let kinds: Vec<&str> = functions
-        .iter()
-        .map(|f| f["kind"].as_str().unwrap())
-        .collect();
+    let kinds: Vec<&str> = functions.iter().map(|f| f["kind"].as_str().unwrap()).collect();
     assert!(kinds.contains(&"function"), "expected 'function' kind");
     assert!(kinds.contains(&"generator"), "expected 'generator' kind");
     assert!(kinds.contains(&"method"), "expected 'method' kind");
@@ -56,18 +49,13 @@ fn find_functions_typescript_parameters() {
     let functions = result["functions"].as_array().unwrap();
 
     // Find greet function with parameter "name"
-    let greet = functions
-        .iter()
-        .find(|f| f["name"].as_str() == Some("greet"));
+    let greet = functions.iter().find(|f| f["name"].as_str() == Some("greet"));
     assert!(greet.is_some(), "expected 'greet' function");
 
     let params = greet.unwrap()["parameters"].as_array();
     assert!(params.is_some(), "greet should have parameters");
     let params = params.unwrap();
-    assert!(
-        !params.is_empty(),
-        "greet should have at least one parameter"
-    );
+    assert!(!params.is_empty(), "greet should have at least one parameter");
 }
 
 #[test]
@@ -78,9 +66,7 @@ fn find_functions_typescript_async() {
         json!({"file_path": "tests/fixtures/functions/all_forms.ts"}),
     );
     let functions = result["functions"].as_array().unwrap();
-    let fetch_data = functions
-        .iter()
-        .find(|f| f["name"].as_str() == Some("fetchData"));
+    let fetch_data = functions.iter().find(|f| f["name"].as_str() == Some("fetchData"));
     assert!(fetch_data.is_some(), "expected async 'fetchData' function");
     assert_eq!(fetch_data.unwrap()["async"], true);
 }
@@ -93,13 +79,8 @@ fn find_functions_typescript_method_parent() {
         json!({"file_path": "tests/fixtures/functions/all_forms.ts"}),
     );
     let functions = result["functions"].as_array().unwrap();
-    let method = functions
-        .iter()
-        .find(|f| f["parentName"].as_str() == Some("MathUtil"));
-    assert!(
-        method.is_some(),
-        "expected method with parentName 'MathUtil'"
-    );
+    let method = functions.iter().find(|f| f["parentName"].as_str() == Some("MathUtil"));
+    assert!(method.is_some(), "expected method with parentName 'MathUtil'");
 }
 
 #[test]
@@ -135,11 +116,7 @@ fn find_functions_python_all_forms() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let functions = result["functions"].as_array().unwrap();
-    assert!(
-        functions.len() >= 4,
-        "expected at least 4 functions, got {}",
-        functions.len()
-    );
+    assert!(functions.len() >= 4, "expected at least 4 functions, got {}", functions.len());
 
     // Should have class methods
     let methods: Vec<_> = functions
@@ -157,9 +134,7 @@ fn find_functions_python_async() {
         json!({"file_path": "tests/fixtures/functions/all_forms.py"}),
     );
     let functions = result["functions"].as_array().unwrap();
-    let fetch = functions
-        .iter()
-        .find(|f| f["name"].as_str() == Some("fetch_data"));
+    let fetch = functions.iter().find(|f| f["name"].as_str() == Some("fetch_data"));
     assert!(fetch.is_some(), "expected 'fetch_data' function");
     assert_eq!(fetch.unwrap()["async"], true);
 }
@@ -177,11 +152,7 @@ fn find_classes_typescript_all_forms() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let classes = result["classes"].as_array().unwrap();
-    assert!(
-        classes.len() >= 5,
-        "expected at least 5 classes, got {}",
-        classes.len()
-    );
+    assert!(classes.len() >= 5, "expected at least 5 classes, got {}", classes.len());
 }
 
 #[test]
@@ -194,10 +165,7 @@ fn find_classes_typescript_extends() {
     let classes = result["classes"].as_array().unwrap();
     let dog = classes.iter().find(|c| c["name"].as_str() == Some("Dog"));
     assert!(dog.is_some(), "expected class 'Dog'");
-    assert!(
-        dog.unwrap()["extendsText"].as_str().is_some(),
-        "Dog should have extendsText"
-    );
+    assert!(dog.unwrap()["extendsText"].as_str().is_some(), "Dog should have extendsText");
 }
 
 #[test]
@@ -209,10 +177,7 @@ fn find_classes_typescript_abstract() {
     let classes = result["classes"].as_array().unwrap();
     let shape = classes.iter().find(|c| c["name"].as_str() == Some("Shape"));
     assert!(shape.is_some(), "expected abstract class 'Shape'");
-    assert!(
-        shape.unwrap()["isAbstract"] == true,
-        "Shape should be abstract"
-    );
+    assert!(shape.unwrap()["isAbstract"] == true, "Shape should be abstract");
 }
 
 #[test]
@@ -223,14 +188,9 @@ fn find_classes_typescript_exported() {
         json!({"file_path": "tests/fixtures/classes/all_forms.ts"}),
     );
     let classes = result["classes"].as_array().unwrap();
-    let exported = classes
-        .iter()
-        .find(|c| c["name"].as_str() == Some("ExportedUtil"));
+    let exported = classes.iter().find(|c| c["name"].as_str() == Some("ExportedUtil"));
     assert!(exported.is_some(), "expected exported class 'ExportedUtil'");
-    assert!(
-        exported.unwrap()["isDefaultExport"] == true,
-        "ExportedUtil should be exported"
-    );
+    assert!(exported.unwrap()["isDefaultExport"] == true, "ExportedUtil should be exported");
 }
 
 #[test]
@@ -241,9 +201,7 @@ fn find_classes_typescript_methods() {
         json!({"file_path": "tests/fixtures/classes/all_forms.ts"}),
     );
     let classes = result["classes"].as_array().unwrap();
-    let animal = classes
-        .iter()
-        .find(|c| c["name"].as_str() == Some("Animal"));
+    let animal = classes.iter().find(|c| c["name"].as_str() == Some("Animal"));
     assert!(animal.is_some(), "expected class 'Animal'");
 
     let methods = animal.unwrap()["methods"].as_array();
@@ -266,11 +224,7 @@ fn find_classes_python_all_forms() {
     );
     assert!(result["error"].is_null(), "unexpected error: {:?}", result);
     let classes = result["classes"].as_array().unwrap();
-    assert!(
-        classes.len() >= 3,
-        "expected at least 3 classes, got {}",
-        classes.len()
-    );
+    assert!(classes.len() >= 3, "expected at least 3 classes, got {}", classes.len());
 }
 
 #[test]
@@ -283,10 +237,7 @@ fn find_classes_python_extends() {
     let classes = result["classes"].as_array().unwrap();
     let dog = classes.iter().find(|c| c["name"].as_str() == Some("Dog"));
     assert!(dog.is_some(), "expected class 'Dog'");
-    assert!(
-        dog.unwrap()["extendsText"].as_str().is_some(),
-        "Dog should have extendsText"
-    );
+    assert!(dog.unwrap()["extendsText"].as_str().is_some(), "Dog should have extendsText");
 }
 
 #[test]
@@ -297,9 +248,7 @@ fn find_classes_python_methods() {
         json!({"file_path": "tests/fixtures/classes/all_forms.py"}),
     );
     let classes = result["classes"].as_array().unwrap();
-    let animal = classes
-        .iter()
-        .find(|c| c["name"].as_str() == Some("Animal"));
+    let animal = classes.iter().find(|c| c["name"].as_str() == Some("Animal"));
     assert!(animal.is_some(), "expected class 'Animal'");
 
     let methods = animal.unwrap()["methods"].as_array();

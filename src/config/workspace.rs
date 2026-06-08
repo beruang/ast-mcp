@@ -13,11 +13,7 @@ impl Workspace {
     pub fn from_env() -> Result<Self, AstToolError> {
         let raw = std::env::var("WORKSPACE_PATH")
             .ok()
-            .or_else(|| {
-                std::env::current_dir()
-                    .ok()
-                    .map(|p| p.to_string_lossy().into_owned())
-            })
+            .or_else(|| std::env::current_dir().ok().map(|p| p.to_string_lossy().into_owned()))
             .ok_or_else(|| {
                 AstToolError::WorkspaceNotFound("WORKSPACE_PATH not set and CWD unavailable".into())
             })?;

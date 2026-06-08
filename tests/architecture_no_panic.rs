@@ -14,12 +14,8 @@ fn no_unwrap_or_expect_in_library() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let src_dir = manifest_dir.join("src");
 
-    let allowed_files: &[&str] = &[
-        "src/main.rs",
-        "src/safety/paths.rs",
-        "src/config/workspace.rs",
-        "src/mcp/transport.rs",
-    ];
+    let allowed_files: &[&str] =
+        &["src/main.rs", "src/safety/paths.rs", "src/config/workspace.rs", "src/mcp/transport.rs"];
     let allowed_dirs: &[&str] = &["src/parser/"];
 
     let mut violations: Vec<String> = Vec::new();
@@ -29,12 +25,7 @@ fn no_unwrap_or_expect_in_library() {
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().is_some_and(|ext| ext == "rs"))
     {
-        let rel = entry
-            .path()
-            .strip_prefix(manifest_dir)
-            .unwrap()
-            .to_string_lossy()
-            .into_owned();
+        let rel = entry.path().strip_prefix(manifest_dir).unwrap().to_string_lossy().into_owned();
 
         let is_allowed_file = allowed_files.iter().any(|a| rel == *a);
         let is_allowed_dir = allowed_dirs.iter().any(|d| rel.starts_with(d));

@@ -62,10 +62,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
     };
 
     // Convert line/character position to byte offset.
-    let pos = Position {
-        line: input.line,
-        character: input.character,
-    };
+    let pos = Position { line: input.line, character: input.character };
     let byte_offset = match positions::position_to_byte_offset(&source, pos) {
         Ok(b) => b,
         Err(e) => return e.payload(),
@@ -105,9 +102,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
 }
 
 fn extension_to_language(path: &str) -> Option<LanguageId> {
-    let ext = std::path::Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())?;
+    let ext = std::path::Path::new(path).extension().and_then(|s| s.to_str())?;
     let dotted = format!(".{}", ext);
     parser::registry::for_extension(&dotted).map(|d| d.language)
 }
