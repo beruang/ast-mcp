@@ -72,7 +72,7 @@ fn reject_directory() {
 fn reject_symlink_escape() {
     let dir = tempfile::tempdir().unwrap();
     let symlink_path = dir.path().join("escape");
-    unix_fs::symlink("/etc/passwd", &symlink_path).unwrap();
+    unix_fs::symlink("/etc/hosts", &symlink_path).unwrap();
 
     std::env::set_var("WORKSPACE_PATH", dir.path().to_string_lossy().as_ref());
     let ws = Workspace::from_env().unwrap();
