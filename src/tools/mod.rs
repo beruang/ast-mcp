@@ -1,4 +1,5 @@
 pub mod chunk_file;
+pub mod enclosing_node;
 pub mod file_outline;
 pub mod find_classes;
 pub mod find_exports;

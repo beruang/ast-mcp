@@ -1,5 +1,6 @@
 pub mod chunks;
 pub mod classes;
+pub mod enclosing_node;
 pub mod exports;
 pub mod functions;
 pub mod imports;
