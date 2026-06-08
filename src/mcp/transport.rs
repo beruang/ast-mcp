@@ -1,4 +1,5 @@
 //! Stdio JSON-RPC transport: read requests, dispatch, write responses.
+use crate::config::workspace::Workspace;
 use crate::mcp::register_tools::{dispatch, tools as register_tools_tools};
 use crate::mcp::responses::{error_envelope, success_envelope, text_envelope};
 use serde::Deserialize;
@@ -28,7 +29,7 @@ fn write_response(resp: Value) -> io::Result<()> {
 
 /// Read lines from stdin, dispatch, write responses.
 /// Exits when stdin closes.
-pub async fn run() -> anyhow::Result<()> {
+pub async fn run(workspace: Workspace) -> anyhow::Result<()> {
     let stdin = tokio::io::stdin();
     let mut lines = BufReader::new(stdin).lines();
 
@@ -72,7 +73,7 @@ pub async fn run() -> anyhow::Result<()> {
             }
 
             "tools/list" => {
-                let tool_list = register_tools_tools();
+                let tool_list = register_tools_tools(&workspace);
                 let tools: Vec<Value> = tool_list
                     .into_iter()
                     .map(|t| {
@@ -95,7 +96,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .unwrap_or("");
                 let arguments = req.params.get("arguments").cloned().unwrap_or(json!({}));
 
-                match dispatch(name, arguments) {
+                match dispatch(name, arguments, &workspace) {
                     Some(payload) => success_envelope(text_envelope(payload), req_id.clone()),
                     None => {
                         let err = error_envelope(-32602, &format!("Tool not found: {}", name));
