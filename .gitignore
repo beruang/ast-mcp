@@ -18,7 +18,7 @@ target/
 .agent-worktrees/
 
 # --- Design / planning artifacts ---
-docs/ast-mcp-v1/
+docs/
 
 # --- Editor / scratch ---
 *.log
