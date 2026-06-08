@@ -1,5 +1,8 @@
+pub mod chunk_file;
 pub mod file_outline;
+pub mod find_classes;
 pub mod find_exports;
+pub mod find_functions;
 pub mod find_imports;
 pub mod health_check;
 pub mod list_supported_languages;

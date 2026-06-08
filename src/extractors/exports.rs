@@ -179,6 +179,31 @@ fn extract_ts_js_export(node: &tree_sitter::Node, source: &str) -> Option<AstExp
         }
     }
 
+    // Also try the "source" field (may be hoisted from from_clause).
+    if re_export_source.is_none() {
+        if let Some(src) = node.child_by_field_name("source") {
+            re_export_source = strip_quotes_opt(&src, source);
+        }
+    }
+    // Also check for direct string child (when from_clause is hidden/inlined).
+    if re_export_source.is_none() {
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i) {
+                if child.kind() == "string" {
+                    // Check if preceded by "from" keyword
+                    let from_idx = i.checked_sub(1);
+                    let is_from = from_idx
+                        .and_then(|idx| node.child(idx))
+                        .is_some_and(|prev| prev.kind() == "from");
+                    if is_from {
+                        re_export_source = strip_quotes_opt(&child, source);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     // If we found a from_clause but no export_clause, it's a wildcard re-export
     if kind == ExportKind::Unknown && re_export_source.is_some() {
         kind = ExportKind::ReExport;
@@ -205,6 +230,13 @@ fn extract_ts_js_export(node: &tree_sitter::Node, source: &str) -> Option<AstExp
 
 /// Extract the first identifier from a node (used for function/class names).
 fn extract_identifier_name(node: &tree_sitter::Node, source: &str) -> Option<String> {
+    // First try the "name" field (used by class_declaration, function_declaration, etc.)
+    if let Some(name_node) = node.child_by_field_name("name") {
+        if let Ok(text) = name_node.utf8_text(source.as_bytes()) {
+            return Some(text.to_string());
+        }
+    }
+    // Fall back to iterating children for an identifier
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             if child.kind() == "identifier" {

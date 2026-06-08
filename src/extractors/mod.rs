@@ -1,4 +1,7 @@
+pub mod chunks;
+pub mod classes;
 pub mod exports;
+pub mod functions;
 pub mod imports;
 pub mod outline;
 pub mod queries;

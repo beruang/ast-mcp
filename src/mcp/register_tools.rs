@@ -164,6 +164,104 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path"]
             }),
         },
+        ToolSpec {
+            name: "ast_find_functions",
+            description: "Find all function definitions in a source file. Returns each function's kind, name, parameters, return type, and source range.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "include_anonymous": {
+                        "type": "boolean",
+                        "description": "Include anonymous/lambda/arrow functions (default: true)"
+                    },
+                    "include_parameters": {
+                        "type": "boolean",
+                        "description": "Include parameter details for each function (default: true)"
+                    },
+                    "include_return_type": {
+                        "type": "boolean",
+                        "description": "Include return type annotations (default: true)"
+                    },
+                    "include_signature": {
+                        "type": "boolean",
+                        "description": "Include the full function signature text (default: true)"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of functions to return (default: 200)"
+                    }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_classes",
+            description: "Find all class definitions in a source file. Returns each class's name, extends/implements, methods, and source range.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "include_methods": {
+                        "type": "boolean",
+                        "description": "Include methods for each class (default: true)"
+                    },
+                    "include_extends": {
+                        "type": "boolean",
+                        "description": "Include extends/superclass information (default: true)"
+                    },
+                    "include_implements": {
+                        "type": "boolean",
+                        "description": "Include implements information for TS/JS (default: true)"
+                    },
+                    "include_decorators": {
+                        "type": "boolean",
+                        "description": "Include decorator annotations for TS/JS (default: true)"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of classes to return (default: 200)"
+                    }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_chunk_file",
+            description: "Split a source file into chunks using a chosen strategy (top_level, function_class, semantic_blocks, or max_lines).",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "strategy": {
+                        "type": "string",
+                        "description": "Chunking strategy: top_level, function_class, semantic_blocks, or max_lines (default: top_level)"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of chunks to return (default: 200)"
+                    },
+                    "max_lines_per_chunk": {
+                        "type": "integer",
+                        "description": "Maximum lines per chunk for max_lines strategy (default: 120)"
+                    },
+                    "max_bytes_per_chunk": {
+                        "type": "integer",
+                        "description": "Maximum bytes per chunk text (default: 30000)"
+                    }
+                },
+                "required": ["file_path"]
+            }),
+        },
     ]
 }
 
@@ -179,6 +277,9 @@ pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<V
         "ast_query" => Some(tools::query::handle(workspace, arguments)),
         "ast_find_imports" => Some(tools::find_imports::handle(workspace, arguments)),
         "ast_find_exports" => Some(tools::find_exports::handle(workspace, arguments)),
+        "ast_find_functions" => Some(tools::find_functions::handle(workspace, arguments)),
+        "ast_find_classes" => Some(tools::find_classes::handle(workspace, arguments)),
+        "ast_chunk_file" => Some(tools::chunk_file::handle(workspace, arguments)),
         _ => None,
     }
 }
