@@ -1,0 +1,13 @@
+[package]
+name = "ast-mcp"
+version = "0.1.0"
+edition = "2021"
+authors = ["ast-mcp-v1"]
+description = "AST MCP server — read-only Tree-sitter AST analysis over stdio JSON-RPC"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
