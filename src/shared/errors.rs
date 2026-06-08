@@ -23,9 +23,9 @@ pub enum AstToolError {
     #[error("invalid range")]
     InvalidRange,
     #[error("query invalid: {0}")]
-    QueryInvalid(String),
+    QueryInvalid(String, Option<serde_json::Value>),
     #[error("query execution failed: {0}")]
-    QueryExecutionFailed(String),
+    QueryExecutionFailed(String, Option<serde_json::Value>),
     #[error("result limit exceeded")]
     ResultLimitExceeded,
     #[error("internal error: {0}")]
@@ -45,8 +45,8 @@ impl AstToolError {
             AstToolError::SyntaxError => "syntax_error",
             AstToolError::InvalidPosition(_) => "invalid_position",
             AstToolError::InvalidRange => "invalid_range",
-            AstToolError::QueryInvalid(_) => "query_invalid",
-            AstToolError::QueryExecutionFailed(_) => "query_execution_failed",
+            AstToolError::QueryInvalid(..) => "query_invalid",
+            AstToolError::QueryExecutionFailed(..) => "query_execution_failed",
             AstToolError::ResultLimitExceeded => "result_limit_exceeded",
             AstToolError::InternalError(_) => "internal_error",
         }
@@ -58,8 +58,17 @@ impl AstToolError {
             "message": self.to_string(),
         });
         // Attach details for errors that carry structured data
-        if let AstToolError::FileTooLarge(size, limit) = self {
-            err["details"] = json!({ "size": size, "limit": limit });
+        match self {
+            AstToolError::FileTooLarge(size, limit) => {
+                err["details"] = json!({ "size": size, "limit": limit });
+            }
+            AstToolError::QueryInvalid(_, details)
+            | AstToolError::QueryExecutionFailed(_, details) => {
+                if let Some(d) = details {
+                    err["details"] = d.clone();
+                }
+            }
+            _ => {}
         }
         json!({ "error": err })
     }

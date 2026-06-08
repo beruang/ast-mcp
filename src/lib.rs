@@ -2,6 +2,7 @@
 extern crate serde_json;
 
 pub mod config;
+pub mod extractors;
 pub mod languages;
 pub mod mcp;
 pub mod parser;

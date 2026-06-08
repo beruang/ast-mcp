@@ -1,3 +1,8 @@
+pub mod file_outline;
+pub mod find_exports;
+pub mod find_imports;
 pub mod health_check;
 pub mod list_supported_languages;
 pub mod parse_file;
+pub mod query;
+pub mod top_level_nodes;
