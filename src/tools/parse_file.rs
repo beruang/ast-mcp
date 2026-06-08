@@ -154,10 +154,17 @@ fn walk_tree(
         None
     };
 
+    let start_pos = crate::parser::positions::ts_point_to_position(node.start_position(), source);
+    let end_pos = crate::parser::positions::ts_point_to_position(node.end_position(), source);
+
     json!({
         "kind": node.kind(),
         "startByte": node.start_byte(),
         "endByte": node.end_byte(),
+        "range": {
+            "start": { "line": start_pos.line, "character": start_pos.character },
+            "end": { "line": end_pos.line, "character": end_pos.character },
+        },
         "text": text,
         "children": children,
     })
