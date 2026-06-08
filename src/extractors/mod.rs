@@ -1,3 +1,4 @@
+pub mod enclosing_node;
 pub mod exports;
 pub mod imports;
 pub mod outline;

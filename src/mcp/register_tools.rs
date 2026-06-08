@@ -164,6 +164,37 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path"]
             }),
         },
+        ToolSpec {
+            name: "ast_enclosing_node",
+            description: "Find the enclosing AST node at a specific line/character position. Returns the ancestor chain (outermost first) with optional kind filtering.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "line": {
+                        "type": "integer",
+                        "description": "0-based line number"
+                    },
+                    "character": {
+                        "type": "integer",
+                        "description": "0-based UTF-16 character offset within the line"
+                    },
+                    "kinds": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Optional whitelist of node kinds to include in the ancestor chain"
+                    },
+                    "include_source_text": {
+                        "type": "boolean",
+                        "description": "Include source text for each ancestor node (default: false)"
+                    }
+                },
+                "required": ["file_path", "line", "character"]
+            }),
+        },
     ]
 }
 
@@ -179,6 +210,7 @@ pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<V
         "ast_query" => Some(tools::query::handle(workspace, arguments)),
         "ast_find_imports" => Some(tools::find_imports::handle(workspace, arguments)),
         "ast_find_exports" => Some(tools::find_exports::handle(workspace, arguments)),
+        "ast_enclosing_node" => Some(tools::enclosing_node::handle(workspace, arguments)),
         _ => None,
     }
 }

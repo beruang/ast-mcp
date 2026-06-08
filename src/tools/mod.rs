@@ -1,3 +1,4 @@
+pub mod enclosing_node;
 pub mod file_outline;
 pub mod find_exports;
 pub mod find_imports;

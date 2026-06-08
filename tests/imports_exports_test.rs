@@ -56,7 +56,7 @@ fn find_imports_typescript_default() {
     let imports = result["imports"].as_array().unwrap();
     let react_import = imports
         .iter()
-        .find(|i| i["module_path"].as_str() == Some("react") && i["kind"] == "import");
+        .find(|i| i["modulePath"].as_str() == Some("react") && i["kind"] == "import");
     assert!(
         react_import.is_some(),
         "expected 'import React from \"react\"'"
@@ -81,7 +81,7 @@ fn find_imports_typescript_side_effect() {
     let imports = result["imports"].as_array().unwrap();
     let side_effect = imports
         .iter()
-        .find(|i| i["module_path"].as_str() == Some("reflect-metadata"));
+        .find(|i| i["modulePath"].as_str() == Some("reflect-metadata"));
     assert!(
         side_effect.is_some(),
         "expected side-effect import 'reflect-metadata'"
@@ -103,7 +103,7 @@ fn find_imports_typescript_require() {
     );
     let require_import = imports.iter().find(|i| i["kind"] == "require");
     assert!(require_import.is_some(), "expected a require() call import");
-    assert_eq!(require_import.unwrap()["module_path"].as_str(), Some("fs"));
+    assert_eq!(require_import.unwrap()["modulePath"].as_str(), Some("fs"));
 }
 
 #[test]
@@ -156,9 +156,9 @@ fn find_imports_python_all_forms() {
 
     // Check for wildcard import
     let wildcard = imports.iter().find(|i| {
-        i["names"].as_array().is_some_and(|n| {
-            n.iter().any(|a| a["imported"].as_str() == Some("*"))
-        })
+        i["names"]
+            .as_array()
+            .is_some_and(|n| n.iter().any(|a| a["imported"].as_str() == Some("*")))
     });
     assert!(wildcard.is_some(), "expected a wildcard import");
 }
@@ -250,7 +250,7 @@ fn find_exports_typescript_re_export() {
     let exports = result["exports"].as_array().unwrap();
     let from_greetings = exports
         .iter()
-        .find(|e| e["re_export_source"].as_str() == Some("./greetings"));
+        .find(|e| e["reExportSource"].as_str() == Some("./greetings"));
     assert!(
         from_greetings.is_some(),
         "expected re-export from './greetings'"
