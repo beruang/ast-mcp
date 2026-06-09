@@ -18,7 +18,7 @@ tree-sitter-python = "0.21"
 tree-sitter-go = "0.21"
 tree-sitter-rust = "0.21"
 walkdir = "2"
-tower-lsp = "0.20"
+# tower-lsp removed — direct MCP stdio transport in main.rs
 similar = "2"
 schemars = "0.8"
 camino = "1"

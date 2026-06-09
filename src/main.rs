@@ -1,7 +1,8 @@
-//! ast-mcp entry point — tower-lsp JSON-RPC server.
+//! ast-mcp — MCP JSON-RPC 2.0 server over stdin/stdout.
+//!
+//! Uses line-delimited JSON (one JSON message per line, terminated by `\n`).
 
 use std::sync::Arc;
-
 use std::time::Instant;
 
 use ast_mcp::cache::CacheManager;
@@ -12,67 +13,54 @@ use ast_mcp::mcp::server_context::ServerContext;
 use ast_mcp::observability::request_tracker::RequestTracker;
 use ast_mcp::scan::ScanRegistry;
 use serde_json::Value;
-use tower_lsp::jsonrpc::Result as LspResult;
-use tower_lsp::lsp_types::*;
-use tower_lsp::{Client, LanguageServer, LspService, Server};
+use tokio::io::{stdin, stdout, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-struct Backend {
-    #[allow(dead_code)]
-    client: Client,
-    ctx: Arc<ServerContext>,
+/// Read one line-delimited JSON message from `reader`.
+async fn read_message(
+    reader: &mut (impl AsyncBufReadExt + std::marker::Unpin),
+) -> std::io::Result<Option<Value>> {
+    let mut line = String::new();
+    let n = reader.read_line(&mut line).await?;
+    if n == 0 {
+        return Ok(None); // EOF
+    }
+    let msg: Value = serde_json::from_str(line.trim())
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    Ok(Some(msg))
 }
 
-#[tower_lsp::async_trait]
-impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> LspResult<InitializeResult> {
-        Ok(InitializeResult {
-            capabilities: ServerCapabilities::default(),
-            server_info: Some(ServerInfo {
-                name: "ast-mcp".to_string(),
-                version: Some("0.2.0".to_string()),
-            }),
-        })
-    }
-
-    async fn initialized(&self, _: InitializedParams) {
-        tracing::info!("AST MCP v5 server initialized");
-    }
-
-    async fn shutdown(&self) -> LspResult<()> {
-        Ok(())
-    }
+/// Write a line-delimited JSON message to `writer`.
+async fn write_message(
+    writer: &mut (impl AsyncWriteExt + std::marker::Unpin),
+    msg: &Value,
+) -> std::io::Result<()> {
+    let body = serde_json::to_string(msg)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    writer.write_all(body.as_bytes()).await?;
+    writer.write_all(b"\n").await?;
+    writer.flush().await?;
+    Ok(())
 }
 
-/// Custom method: tools/list — returns all registered tool specs.
-async fn tools_list(backend: &Backend, _params: Value) -> LspResult<Value> {
-    let tool_list = register_tools_tools(&backend.ctx);
-    let tools: Vec<Value> = tool_list
-        .into_iter()
-        .map(|t| {
-            serde_json::json!({
-                "name": t.name,
-                "description": t.description,
-                "inputSchema": t.input_schema
-            })
-        })
-        .collect();
-    Ok(serde_json::json!({ "tools": tools }))
+/// Build a JSON-RPC 2.0 success response.
+fn success(id: &Value, result: Value) -> Value {
+    serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "result": result
+    })
 }
 
-/// Custom method: tools/call — dispatch a tool call by name.
-async fn tools_call(backend: &Backend, params: Value) -> LspResult<Value> {
-    let name = params.get("name").and_then(|v| v.as_str()).unwrap_or("");
-    let arguments = params.get("arguments").cloned().unwrap_or_else(|| serde_json::json!({}));
-
-    match dispatch(name, arguments, &backend.ctx) {
-        Some(payload) => Ok(serde_json::json!({
-            "content": [{
-                "type": "text",
-                "text": payload.to_string()
-            }]
-        })),
-        None => Err(tower_lsp::jsonrpc::Error::method_not_found()),
-    }
+/// Build a JSON-RPC 2.0 error response.
+fn error(id: &Value, code: i64, message: &str) -> Value {
+    serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "error": {
+            "code": code,
+            "message": message
+        }
+    })
 }
 
 #[tokio::main]
@@ -90,7 +78,6 @@ async fn main() -> anyhow::Result<()> {
         cfg.caches.framework_result_ttl_ms,
         cfg.caches.max_cached_files,
     ));
-
     let scan_registry = Arc::new(ScanRegistry::new());
     let started_at = Instant::now();
 
@@ -103,15 +90,85 @@ async fn main() -> anyhow::Result<()> {
         started_at,
     });
 
-    let stdin = tokio::io::stdin();
-    let stdout = tokio::io::stdout();
+    let mut reader = BufReader::new(stdin());
+    let mut writer = stdout();
 
-    let (service, socket) = LspService::build(|client| Backend { client, ctx: Arc::clone(&ctx) })
-        .custom_method("tools/list", tools_list)
-        .custom_method("tools/call", tools_call)
-        .finish();
+    while let Some(request) = read_message(&mut reader).await? {
+        let id = match request.get("id") {
+            Some(id) => id.clone(),
+            None => continue, // notification — no response
+        };
 
-    Server::new(stdin, stdout, socket).serve(service).await;
+        let method = request.get("method").and_then(|v| v.as_str()).unwrap_or("");
+
+        match method {
+            "initialize" => {
+                let result = serde_json::json!({
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": { "tools": {} },
+                    "serverInfo": {
+                        "name": "ast-mcp",
+                        "version": "0.2.0"
+                    }
+                });
+                write_message(&mut writer, &success(&id, result)).await?;
+            }
+
+            "tools/list" => {
+                let tool_list = register_tools_tools(&ctx);
+                let tools: Vec<Value> = tool_list
+                    .into_iter()
+                    .map(|t| {
+                        serde_json::json!({
+                            "name": t.name,
+                            "description": t.description,
+                            "inputSchema": t.input_schema
+                        })
+                    })
+                    .collect();
+                let result = serde_json::json!({ "tools": tools });
+                write_message(&mut writer, &success(&id, result)).await?;
+            }
+
+            "tools/call" => {
+                let name = request
+                    .get("params")
+                    .and_then(|p| p.get("name"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let arguments = request
+                    .get("params")
+                    .and_then(|p| p.get("arguments"))
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::json!({}));
+
+                match dispatch(name, arguments, &ctx) {
+                    Some(payload) => {
+                        let result = serde_json::json!({
+                            "content": [{
+                                "type": "text",
+                                "text": payload.to_string()
+                            }]
+                        });
+                        write_message(&mut writer, &success(&id, result)).await?;
+                    }
+                    None => {
+                        let msg = format!("Tool not found: {}", name);
+                        write_message(&mut writer, &error(&id, -32602, &msg)).await?;
+                    }
+                }
+            }
+
+            "ping" => {
+                write_message(&mut writer, &success(&id, serde_json::json!({}))).await?;
+            }
+
+            _ => {
+                let msg = format!("Method not found: {}", method);
+                write_message(&mut writer, &error(&id, -32601, &msg)).await?;
+            }
+        }
+    }
 
     Ok(())
 }
