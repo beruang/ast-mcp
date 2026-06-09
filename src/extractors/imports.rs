@@ -48,6 +48,7 @@ pub fn find_imports(tree: &Tree, source: &str, lang: LanguageId) -> Vec<AstImpor
         | LanguageId::JavaScript
         | LanguageId::JavaScriptReact => find_imports_ts_js(tree, source),
         LanguageId::Python => find_imports_python(tree, source),
+        LanguageId::Go | LanguageId::Rust => vec![],
     }
 }
 

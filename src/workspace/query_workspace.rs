@@ -173,9 +173,8 @@ fn lang_from_str(s: &str) -> Option<LanguageId> {
         "javascript" | "js" => Some(LanguageId::JavaScript),
         "javascriptreact" | "jsx" => Some(LanguageId::JavaScriptReact),
         "python" | "py" => Some(LanguageId::Python),
-        // Go and Rust deferred to future release
-        // "go" => Some(LanguageId::Go),
-        // "rust" | "rs" => Some(LanguageId::Rust),
+        "go" => Some(LanguageId::Go),
+        "rust" | "rs" => Some(LanguageId::Rust),
         _ => None,
     }
 }

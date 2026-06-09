@@ -5,6 +5,7 @@ pub mod config;
 pub mod context;
 pub mod extraction;
 pub mod extractors;
+pub mod frameworks;
 pub mod languages;
 pub mod mcp;
 pub mod metrics;

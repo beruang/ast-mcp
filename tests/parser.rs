@@ -3,8 +3,8 @@ use ast_mcp::parser::registry::{for_extension, for_language, registry};
 use ast_mcp::shared::language::LanguageId;
 
 #[test]
-fn registry_has_five_entries() {
-    assert_eq!(registry().len(), 5);
+fn registry_has_seven_entries() {
+    assert_eq!(registry().len(), 7);
 }
 
 #[test]

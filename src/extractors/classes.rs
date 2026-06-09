@@ -85,6 +85,7 @@ pub fn find_classes(
         | LanguageId::JavaScript
         | LanguageId::JavaScriptReact => find_classes_ts_js(tree, source, opts),
         LanguageId::Python => find_classes_python(tree, source, opts),
+        LanguageId::Go | LanguageId::Rust => vec![],
     }
 }
 

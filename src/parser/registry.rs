@@ -1,6 +1,6 @@
 use tree_sitter::Language;
 
-use crate::languages::{javascript, python, typescript};
+use crate::languages::{go, javascript, python, rust, typescript};
 use crate::shared::language::LanguageId;
 
 pub struct ParserDefinition {
@@ -35,6 +35,16 @@ pub fn registry() -> &'static [ParserDefinition] {
             language: LanguageId::Python,
             extensions: &[".py"],
             tree_sitter_language: python::language,
+        },
+        ParserDefinition {
+            language: LanguageId::Go,
+            extensions: &[".go"],
+            tree_sitter_language: go::language,
+        },
+        ParserDefinition {
+            language: LanguageId::Rust,
+            extensions: &[".rs"],
+            tree_sitter_language: rust::language,
         },
     ]
 }

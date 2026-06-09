@@ -87,6 +87,7 @@ pub fn find_functions(
         | LanguageId::JavaScript
         | LanguageId::JavaScriptReact => find_functions_ts_js(tree, source, opts),
         LanguageId::Python => find_functions_python(tree, source, opts),
+        LanguageId::Go | LanguageId::Rust => vec![],
     }
 }
 

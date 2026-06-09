@@ -58,6 +58,7 @@ pub fn find_exports(
         | LanguageId::JavaScript
         | LanguageId::JavaScriptReact => find_exports_ts_js(tree, source),
         LanguageId::Python => find_exports_python(tree, source, include_best_effort_python),
+        LanguageId::Go | LanguageId::Rust => vec![],
     }
 }
 

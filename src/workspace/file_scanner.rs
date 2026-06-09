@@ -85,10 +85,12 @@ fn is_ignored_dir(entry: &walkdir::DirEntry) -> bool {
             | "coverage"
             | ".target"
             | "target"
+            | "vendor"
             | ".venv"
             | "venv"
             | "__pycache__"
             | ".next"
+            | ".nuxt"
             | ".turbo"
     )
 }
