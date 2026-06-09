@@ -1,9 +1,9 @@
 [package]
 name = "ast-mcp"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-authors = ["ast-mcp-v1"]
-description = "AST MCP server — read-only Tree-sitter AST analysis over stdio JSON-RPC"
+authors = ["ast-mcp-v4"]
+description = "AST MCP server — Tree-sitter AST analysis with V4 structural rewrite preview engine"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -11,13 +11,24 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 thiserror = "1"
-tree-sitter = "0.20"
-tree-sitter-typescript = "0.20"
-tree-sitter-javascript = "0.20"
-tree-sitter-python = "0.20"
-tree-sitter-go = "0.20"
-tree-sitter-rust = "0.20"
+tree-sitter = "0.22"
+tree-sitter-typescript = "0.21"
+tree-sitter-javascript = "0.21"
+tree-sitter-python = "0.21"
+tree-sitter-go = "0.21"
+tree-sitter-rust = "0.21"
 walkdir = "2"
+tower-lsp = "0.20"
+similar = "2"
+schemars = "0.8"
+camino = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+rayon = "1"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+ignore = "0.4"
+globset = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

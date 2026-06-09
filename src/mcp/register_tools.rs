@@ -725,6 +725,174 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path"]
             }),
         },
+        // ── V4 tools ──
+        ToolSpec {
+            name: "ast_rewrite_preview",
+            description: "Preview structural rewrites: replace, insert before/after, or delete AST nodes. Returns a unified diff, parse-after validation, and safety violations. Never writes files.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "operations": {
+                        "type": "array",
+                        "items": { "type": "object" },
+                        "description": "List of rewrite operations (replace_range, replace_node, insert_before_node, insert_after_node, delete_node)"
+                    },
+                    "include_diff": { "type": "boolean", "description": "Include unified diff in response (default: true)" },
+                    "parse_check": { "type": "boolean", "description": "Re-parse modified files to check for syntax errors (default: true)" },
+                    "max_changed_files": { "type": "integer", "description": "Maximum files to change (default: 20)" },
+                    "max_edits": { "type": "integer", "description": "Maximum edits (default: 200)" }
+                },
+                "required": ["operations"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_validate_rewrite",
+            description: "Validate rewrite operations without generating a diff. Returns safety violations, overlap detection, and limit checks.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "operations": {
+                        "type": "array",
+                        "items": { "type": "object" },
+                        "description": "List of rewrite operations to validate"
+                    },
+                    "max_changed_files": { "type": "integer", "description": "Maximum files to change (default: 20)" },
+                    "max_edits": { "type": "integer", "description": "Maximum edits (default: 200)" }
+                },
+                "required": ["operations"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_parse_after_rewrite",
+            description: "Apply edits in memory and re-parse changed files to check for syntax errors. Useful for validating externally-generated edits before applying them.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "edits": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": { "type": "string" },
+                                "range": {
+                                    "type": "object",
+                                    "properties": {
+                                        "start": { "type": "object", "properties": { "line": { "type": "integer" }, "character": { "type": "integer" } } },
+                                        "end": { "type": "object", "properties": { "line": { "type": "integer" }, "character": { "type": "integer" } } }
+                                    }
+                                },
+                                "new_text": { "type": "string" }
+                            }
+                        },
+                        "description": "List of text edits to apply and validate"
+                    },
+                    "max_changed_files": { "type": "integer", "description": "Maximum files (default: 20)" },
+                    "max_edits": { "type": "integer", "description": "Maximum edits (default: 200)" }
+                },
+                "required": ["edits"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_insert_import_preview",
+            description: "Preview adding or merging an import statement. Supports TypeScript/JavaScript (ES imports) and Python (import/from). Does not guarantee the imported symbol exists — semantic validation belongs to LSP.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "import": {
+                        "type": "object",
+                        "properties": {
+                            "source": { "type": "string", "description": "Module path to import from" },
+                            "default_import": { "type": "string", "description": "Default import name" },
+                            "named_imports": { "type": "array", "items": { "type": "string" }, "description": "Named imports" },
+                            "namespace_import": { "type": "string", "description": "Namespace import (* as name)" },
+                            "is_type_only": { "type": "boolean", "description": "Type-only import (TS/JS only)" }
+                        },
+                        "required": ["source"]
+                    },
+                    "include_diff": { "type": "boolean", "description": "Include unified diff (default: true)" },
+                    "parse_check": { "type": "boolean", "description": "Re-parse after rewrite (default: true)" }
+                },
+                "required": ["file_path", "import"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_remove_unused_import_preview",
+            description: "Preview removal of syntactically unused imports. Never removes side-effect imports (import 'mod'). Syntax-level approximation — not semantic analysis.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "import_names": { "type": "array", "items": { "type": "string" }, "description": "Specific import names to consider (omit for all)" },
+                    "include_diff": { "type": "boolean", "description": "Include unified diff (default: true)" },
+                    "parse_check": { "type": "boolean", "description": "Re-parse after rewrite (default: true)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_rename_local_preview",
+            description: "Preview renaming a local variable/parameter within its scope. Conservative — rejects imported/exported/top-level symbols. For cross-file semantic rename, use LSP.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string" },
+                    "position": { "type": "object", "properties": { "line": { "type": "integer" }, "character": { "type": "integer" } }, "required": ["line", "character"] },
+                    "new_name": { "type": "string" },
+                    "scope_range": { "type": "object", "description": "Optional scope boundary" },
+                    "include_diff": { "type": "boolean" },
+                    "parse_check": { "type": "boolean" }
+                },
+                "required": ["file_path", "position", "new_name"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_wrap_node_preview",
+            description: "Preview wrapping a syntax node with prefix/suffix, try/catch, or call expression wrapper. Preserves indentation.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string" },
+                    "range": { "type": "object" },
+                    "expected_node_kind": { "type": "string" },
+                    "wrapper": { "type": "object", "description": "Wrapper: {kind: prefix_suffix|try_catch|call_expression, ...}" },
+                    "include_diff": { "type": "boolean" },
+                    "parse_check": { "type": "boolean" }
+                },
+                "required": ["file_path", "range", "wrapper"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_add_decorator_preview",
+            description: "Preview adding a decorator/attribute to a class, method, function, or field. Supports TS/JS/Python/Rust. Preserves indentation.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string" },
+                    "target_range": { "type": "object" },
+                    "decorator_text": { "type": "string" },
+                    "expected_target_kind": { "type": "string" },
+                    "include_diff": { "type": "boolean" },
+                    "parse_check": { "type": "boolean" }
+                },
+                "required": ["file_path", "target_range", "decorator_text"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_modify_function_signature_preview",
+            description: "Preview modifying a function/method signature: add/remove/rename parameters or replace the full signature. Never updates call sites.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string" },
+                    "function_range": { "type": "object" },
+                    "operation": { "type": "object", "description": "{kind: replace_signature|add_parameter|remove_parameter|rename_parameter, ...}" },
+                    "include_diff": { "type": "boolean" },
+                    "parse_check": { "type": "boolean" }
+                },
+                "required": ["file_path", "function_range", "operation"]
+            }),
+        },
     ]
 }
 
@@ -770,6 +938,20 @@ pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<V
         "ast_find_decorators" => Some(tools::find_decorators::handle(workspace, arguments)),
         "ast_find_tests" => Some(tools::find_tests::handle(workspace, arguments)),
         "ast_dependency_edges" => Some(tools::find_dependency_edges::handle(workspace, arguments)),
+        // V4 tools
+        "ast_rewrite_preview" => Some(tools::rewrite_preview::handle(workspace, arguments)),
+        "ast_validate_rewrite" => Some(tools::validate_rewrite::handle(workspace, arguments)),
+        "ast_parse_after_rewrite" => Some(tools::parse_after_rewrite::handle(workspace, arguments)),
+        "ast_insert_import_preview" => Some(tools::insert_import::handle(workspace, arguments)),
+        "ast_remove_unused_import_preview" => {
+            Some(tools::remove_unused_import::handle(workspace, arguments))
+        }
+        "ast_rename_local_preview" => Some(tools::rename_local::handle(workspace, arguments)),
+        "ast_wrap_node_preview" => Some(tools::wrap_node::handle(workspace, arguments)),
+        "ast_add_decorator_preview" => Some(tools::add_decorator::handle(workspace, arguments)),
+        "ast_modify_function_signature_preview" => {
+            Some(tools::modify_signature::handle(workspace, arguments))
+        }
         _ => None,
     }
 }

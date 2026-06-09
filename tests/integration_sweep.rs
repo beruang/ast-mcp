@@ -435,7 +435,7 @@ fn sweep_tool_list_count() {
     let dir = tempfile::tempdir().unwrap();
     let ws = workspace(&dir);
     let tool_specs = register_tools::tools(&ws);
-    assert_eq!(tool_specs.len(), 30, "expected exactly 30 tools, got {}", tool_specs.len());
+    assert_eq!(tool_specs.len(), 39, "expected exactly 39 tools, got {}", tool_specs.len());
 
     // Every tool must have a name, description, and inputSchema
     for spec in &tool_specs {

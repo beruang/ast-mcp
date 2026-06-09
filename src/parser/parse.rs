@@ -21,7 +21,7 @@ pub fn parse_source(source: &str, lang: LanguageId) -> Result<(Tree, ParseStatus
 
     let mut parser = Parser::new();
     parser
-        .set_language((def.tree_sitter_language)())
+        .set_language(&(def.tree_sitter_language)())
         .map_err(|e| AstToolError::ParserUnavailable(e.to_string()))?;
 
     let start = Instant::now();

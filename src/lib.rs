@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate serde_json;
-
 pub mod config;
 pub mod context;
 pub mod extraction;
@@ -10,6 +7,8 @@ pub mod languages;
 pub mod mcp;
 pub mod metrics;
 pub mod parser;
+pub mod rewrite;
+pub mod rewrite_tools;
 pub mod safety;
 pub mod shared;
 pub mod text;
