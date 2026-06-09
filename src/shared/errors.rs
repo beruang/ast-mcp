@@ -28,6 +28,24 @@ pub enum AstToolError {
     QueryExecutionFailed(String, Option<serde_json::Value>),
     #[error("result limit exceeded")]
     ResultLimitExceeded,
+    #[error("range out of bounds")]
+    RangeOutOfBounds,
+    #[error("node not found")]
+    NodeNotFound,
+    #[error("scope not found")]
+    ScopeNotFound,
+    #[error("feature unsupported for language: {0}")]
+    AstFeatureUnsupportedForLanguage(String),
+    #[error("workspace query limit exceeded")]
+    QueryWorkspaceLimitExceeded,
+    #[error("workspace query timeout")]
+    WorkspaceQueryTimeout,
+    #[error("invalid glob pattern: {0}")]
+    InvalidGlob(String),
+    #[error("position encoding error: {0}")]
+    PositionEncodingError(String),
+    #[error("context budget exceeded")]
+    ContextBudgetExceeded,
     #[error("internal error: {0}")]
     InternalError(String),
 }
@@ -48,6 +66,17 @@ impl AstToolError {
             AstToolError::QueryInvalid(..) => "query_invalid",
             AstToolError::QueryExecutionFailed(..) => "query_execution_failed",
             AstToolError::ResultLimitExceeded => "result_limit_exceeded",
+            AstToolError::RangeOutOfBounds => "range_out_of_bounds",
+            AstToolError::NodeNotFound => "node_not_found",
+            AstToolError::ScopeNotFound => "scope_not_found",
+            AstToolError::AstFeatureUnsupportedForLanguage(_) => {
+                "ast_feature_unsupported_for_language"
+            }
+            AstToolError::QueryWorkspaceLimitExceeded => "query_workspace_limit_exceeded",
+            AstToolError::WorkspaceQueryTimeout => "workspace_query_timeout",
+            AstToolError::InvalidGlob(_) => "invalid_glob",
+            AstToolError::PositionEncodingError(_) => "position_encoding_error",
+            AstToolError::ContextBudgetExceeded => "context_budget_exceeded",
             AstToolError::InternalError(_) => "internal_error",
         }
     }

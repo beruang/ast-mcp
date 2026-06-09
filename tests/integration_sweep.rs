@@ -430,12 +430,12 @@ fn sweep_enclosing_node() {
 // ---------------------------------------------------------------
 #[test]
 fn sweep_tool_list_count() {
-    // Verify the registry reports exactly 12 tools
+    // Verify the registry reports exactly 23 tools (12 V1 + 11 V2)
     use ast_mcp::mcp::register_tools;
     let dir = tempfile::tempdir().unwrap();
     let ws = workspace(&dir);
     let tool_specs = register_tools::tools(&ws);
-    assert_eq!(tool_specs.len(), 12, "expected exactly 12 tools, got {}", tool_specs.len());
+    assert_eq!(tool_specs.len(), 23, "expected exactly 23 tools, got {}", tool_specs.len());
 
     // Every tool must have a name, description, and inputSchema
     for spec in &tool_specs {

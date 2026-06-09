@@ -1,8 +1,12 @@
-//! Tool registry — metadata and dispatch for all V1 AST tools.
+//! Tool registry — metadata and dispatch for all V1 and V2 AST tools.
 use serde_json::{json, Value};
 
 use crate::config::workspace::Workspace;
+use crate::context;
+use crate::extraction;
+use crate::metrics;
 use crate::tools;
+use crate::workspace;
 
 /// Tool specification — pure metadata; no handler function.
 pub struct ToolSpec {
@@ -293,6 +297,323 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path", "line", "character"]
             }),
         },
+        // ── V2 tools ──
+        ToolSpec {
+            name: "ast_enclosing_scope",
+            description: "Return the syntactic scope chain (outermost to innermost) enclosing a source position. Returns scope-like containers only: module, class, function, method, etc.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {
+                            "line": { "type": "integer", "description": "0-based line number" },
+                            "character": { "type": "integer", "description": "0-based UTF-16 character offset" }
+                        },
+                        "required": ["line", "character"]
+                    },
+                    "include_block_scopes": {
+                        "type": "boolean",
+                        "description": "Include block scopes (default: false)"
+                    }
+                },
+                "required": ["file_path", "position"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_node_at_range",
+            description: "Return the smallest AST node that exactly matches or contains a source range. Supports exact, smallest_containing, and largest_contained modes.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "range": {
+                        "type": "object",
+                        "properties": {
+                            "start": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            },
+                            "end": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            }
+                        },
+                        "required": ["start", "end"]
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["exact", "smallest_containing", "largest_contained"],
+                        "description": "Match mode (default: smallest_containing)"
+                    },
+                    "include_text": {
+                        "type": "boolean",
+                        "description": "Include source text for the node (default: true)"
+                    },
+                    "max_text_bytes": {
+                        "type": "integer",
+                        "description": "Maximum bytes of text to include (default: 12000)"
+                    }
+                },
+                "required": ["file_path", "range"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_node_text",
+            description: "Return exact source text for a given range without returning the entire file. Enforces max byte limit.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "range": {
+                        "type": "object",
+                        "properties": {
+                            "start": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            },
+                            "end": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            }
+                        },
+                        "required": ["start", "end"]
+                    },
+                    "max_bytes": {
+                        "type": "integer",
+                        "description": "Maximum bytes to return (default: 20000)"
+                    }
+                },
+                "required": ["file_path", "range"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_context_for_range",
+            description: "Return minimal useful syntax context around a source range. Includes target node, parent chain, optional siblings, with byte-budget enforcement.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "range": {
+                        "type": "object",
+                        "properties": {
+                            "start": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            },
+                            "end": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            }
+                        },
+                        "required": ["start", "end"]
+                    },
+                    "include_parents": {
+                        "type": "boolean",
+                        "description": "Include parent node chain (default: true)"
+                    },
+                    "include_siblings": {
+                        "type": "boolean",
+                        "description": "Include immediate sibling summaries (default: false)"
+                    },
+                    "max_parent_depth": {
+                        "type": "integer",
+                        "description": "Maximum parent chain depth (default: 4)"
+                    },
+                    "max_context_bytes": {
+                        "type": "integer",
+                        "description": "Maximum total bytes in response (default: 30000)"
+                    }
+                },
+                "required": ["file_path", "range"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_calls",
+            description: "Find call expressions in a file. Filter by exact callee name or substring. Returns callee text, argument text, and optional enclosing scope.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "callee": { "type": "string", "description": "Exact callee name to match" },
+                    "callee_contains": { "type": "string", "description": "Substring to match in callee text" },
+                    "include_arguments": { "type": "boolean", "description": "Include argument text (default: true)" },
+                    "include_enclosing_scope": { "type": "boolean", "description": "Include enclosing scope for each call (default: true)" },
+                    "max_results": { "type": "integer", "description": "Maximum calls to return (default: 200)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_member_access",
+            description: "Find member/property access expressions in a file. Filter by property name, object substring, or full-text substring.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "property": { "type": "string", "description": "Exact property name to match" },
+                    "object_contains": { "type": "string", "description": "Substring to match in object text" },
+                    "full_text_contains": { "type": "string", "description": "Substring to match in full member expression text" },
+                    "include_enclosing_scope": { "type": "boolean", "description": "Include enclosing scope (default: true)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 200)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_literals",
+            description: "Find literals (string, number, boolean, null, regex) in a file. Filter by literal kind, contains, or exact value match.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "literal_kind": { "type": "string", "enum": ["string", "number", "boolean", "null", "regex", "unknown"], "description": "Filter by literal kind" },
+                    "contains": { "type": "string", "description": "Substring match against value text" },
+                    "exact": { "type": "string", "description": "Exact value match" },
+                    "include_enclosing_scope": { "type": "boolean", "description": "Include enclosing scope (default: true)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 200)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_template_literals",
+            description: "Find template literals and tagged template literals in a file. Filter by tag name or content substring.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "tag": { "type": "string", "description": "Filter by tag name (e.g. 'sql', 'gql')" },
+                    "contains": { "type": "string", "description": "Substring match against template text" },
+                    "include_untagged": { "type": "boolean", "description": "Include untagged templates (default: true)" },
+                    "include_enclosing_scope": { "type": "boolean", "description": "Include enclosing scope (default: true)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 100)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_query_workspace",
+            description: "Run a bounded Tree-sitter query across workspace files. Enforces strict limits on files scanned, results returned, and bytes per file.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Tree-sitter query pattern" },
+                    "language": { "type": "string", "description": "Target language filter (optional, inferred from file extension if omitted)" },
+                    "glob": { "type": "string", "description": "Glob pattern to filter files (e.g. 'src/**/*.ts')" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 200)" },
+                    "max_results": { "type": "integer", "description": "Maximum results to return (default: 1000)" },
+                    "max_bytes_per_file": { "type": "integer", "description": "Skip files larger than this (default: 1000000)" },
+                    "include_text": { "type": "boolean", "description": "Include source text in captures (default: true)" }
+                },
+                "required": ["query"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_file_metrics",
+            description: "Return structural metrics for a file: line count, node count, function count, class count, max nesting depth, and more.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to the file" },
+                    "include_function_metrics": { "type": "boolean", "description": "Include per-function metrics (default: false)" }
+                },
+                "required": ["file_path"]
+            }),
+        },
+        ToolSpec {
+            name: "ast_context_pack",
+            description: "Return a compact, agent-ready structural context pack for a file position or range. Includes requested parts: imports, exports, enclosing scope, enclosing node, top-level outline.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Workspace-relative path to the file"
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {
+                            "line": { "type": "integer" },
+                            "character": { "type": "integer" }
+                        },
+                        "required": ["line", "character"]
+                    },
+                    "range": {
+                        "type": "object",
+                        "properties": {
+                            "start": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            },
+                            "end": {
+                                "type": "object",
+                                "properties": {
+                                    "line": { "type": "integer" },
+                                    "character": { "type": "integer" }
+                                },
+                                "required": ["line", "character"]
+                            }
+                        },
+                        "required": ["start", "end"]
+                    },
+                    "include": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["imports", "exports", "enclosing_scope", "enclosing_node", "top_level_outline", "nearby_functions", "nearby_classes"]
+                        },
+                        "description": "Parts to include (default: imports, exports, enclosing_scope, enclosing_node, top_level_outline)"
+                    },
+                    "max_bytes": {
+                        "type": "integer",
+                        "description": "Maximum total bytes in response (default: 30000)"
+                    }
+                },
+                "required": ["file_path"]
+            }),
+        },
     ]
 }
 
@@ -312,6 +633,20 @@ pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<V
         "ast_find_classes" => Some(tools::find_classes::handle(workspace, arguments)),
         "ast_chunk_file" => Some(tools::chunk_file::handle(workspace, arguments)),
         "ast_enclosing_node" => Some(tools::enclosing_node::handle(workspace, arguments)),
+        // V2 tools
+        "ast_enclosing_scope" => Some(context::enclosing_scope::handle(workspace, arguments)),
+        "ast_node_at_range" => Some(context::node_at_range::handle(workspace, arguments)),
+        "ast_node_text" => Some(context::node_text::handle(workspace, arguments)),
+        "ast_context_for_range" => Some(context::context_for_range::handle(workspace, arguments)),
+        "ast_context_pack" => Some(context::context_pack::handle(workspace, arguments)),
+        "ast_find_calls" => Some(extraction::calls::handle(workspace, arguments)),
+        "ast_find_member_access" => Some(extraction::member_access::handle(workspace, arguments)),
+        "ast_find_literals" => Some(extraction::literals::handle(workspace, arguments)),
+        "ast_find_template_literals" => {
+            Some(extraction::template_literals::handle(workspace, arguments))
+        }
+        "ast_query_workspace" => Some(workspace::query_workspace::handle(workspace, arguments)),
+        "ast_file_metrics" => Some(metrics::file_metrics::handle(workspace, arguments)),
         _ => None,
     }
 }
