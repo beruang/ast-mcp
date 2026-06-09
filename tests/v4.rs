@@ -1,5 +1,6 @@
 //! V4 integration tests — rewrite preview tools across TypeScript, JavaScript, and Python.
 
+use ast_mcp::mcp::server_context::ServerContext;
 use serde_json::json;
 
 // ── Helpers ──
@@ -10,6 +11,10 @@ fn project_workspace() -> ast_mcp::config::workspace::Workspace {
     ast_mcp::config::workspace::Workspace::from_env().unwrap()
 }
 
+fn project_ctx() -> ServerContext {
+    ServerContext::for_testing(project_workspace())
+}
+
 fn temp_workspace() -> (tempfile::TempDir, ast_mcp::config::workspace::Workspace) {
     let dir = tempfile::tempdir().unwrap();
     std::env::set_var("WORKSPACE_PATH", dir.path().to_string_lossy().as_ref());
@@ -17,12 +22,18 @@ fn temp_workspace() -> (tempfile::TempDir, ast_mcp::config::workspace::Workspace
     (dir, w)
 }
 
+#[allow(dead_code)]
+fn temp_ctx() -> (tempfile::TempDir, ServerContext) {
+    let (dir, ws) = temp_workspace();
+    (dir, ServerContext::for_testing(ws))
+}
+
 // ── Tool presence ──
 
 #[test]
 fn all_v4_tools_registered() {
-    let w = project_workspace();
-    let tools = ast_mcp::mcp::register_tools::tools(&w);
+    let ctx = project_ctx();
+    let tools = ast_mcp::mcp::register_tools::tools(&ctx);
     let names: Vec<_> = tools.iter().map(|t| t.name).collect();
     let v4_tools = [
         "ast_rewrite_preview",

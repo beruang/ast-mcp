@@ -1,4 +1,5 @@
 use ast_mcp::config::workspace::Workspace;
+use ast_mcp::mcp::server_context::ServerContext;
 use ast_mcp::tools;
 use serde_json::{json, Value};
 use std::fs;
@@ -10,6 +11,10 @@ fn workspace(dir: &tempfile::TempDir) -> Workspace {
     let _guard = WS_LOCK.lock().unwrap();
     std::env::set_var("WORKSPACE_PATH", dir.path().to_string_lossy().as_ref());
     Workspace::from_env().unwrap()
+}
+
+fn ctx(dir: &tempfile::TempDir) -> ServerContext {
+    ServerContext::for_testing(workspace(dir))
 }
 
 fn assert_no_error(result: &Value, tool: &str) {
@@ -433,9 +438,14 @@ fn sweep_tool_list_count() {
     // Verify the registry reports exactly 23 tools (12 V1 + 11 V2)
     use ast_mcp::mcp::register_tools;
     let dir = tempfile::tempdir().unwrap();
-    let ws = workspace(&dir);
-    let tool_specs = register_tools::tools(&ws);
-    assert_eq!(tool_specs.len(), 39, "expected exactly 39 tools, got {}", tool_specs.len());
+    let c = ctx(&dir);
+    let tool_specs = register_tools::tools(&c);
+    assert_eq!(
+        tool_specs.len(),
+        54,
+        "expected 54 tools (12 V1 + 11 V2 + 7 V3 + 9 V4 + 15 V5), got {}",
+        tool_specs.len()
+    );
 
     // Every tool must have a name, description, and inputSchema
     for spec in &tool_specs {
@@ -472,7 +482,7 @@ fn sweep_tool_list_count() {
 fn sweep_dispatch_all_tools_return_json() {
     let dir = tempfile::tempdir().unwrap();
     setup_fixtures(&dir);
-    let ws = workspace(&dir);
+    let c = ctx(&dir);
 
     // Dispatch each tool — verify it returns valid JSON and no crash
     let cases: &[(&str, Value)] = &[
@@ -491,7 +501,7 @@ fn sweep_dispatch_all_tools_return_json() {
     ];
 
     for (name, args) in cases {
-        let result = ast_mcp::mcp::register_tools::dispatch(name, args.clone(), &ws);
+        let result = ast_mcp::mcp::register_tools::dispatch(name, args.clone(), &c);
         assert!(result.is_some(), "dispatch({}) returned None — tool not registered", name);
         let val = result.unwrap();
         assert!(val.is_object(), "dispatch({}) returned non-object: {:?}", name, val);

@@ -7,6 +7,10 @@
 /// - `src/safety/paths.rs` (explicit validation path)
 /// - `src/parser/` (Tree-sitter FFI boundary, where panics signal broken invariants)
 /// - `src/config/workspace.rs` (initialization)
+/// - `src/config/runtime_config.rs` (RwLock config store)
+/// - `src/cache/` (Mutex-backed TTL caches; lock poisoning is unrecoverable)
+/// - `src/scan/` (Mutex-backed scan registry)
+/// - `src/observability/` (Mutex-backed request tracker ring buffer)
 ///
 /// Everything else must use `Result` propagation or properly handle errors.
 #[test]
@@ -14,9 +18,14 @@ fn no_unwrap_or_expect_in_library() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let src_dir = manifest_dir.join("src");
 
-    let allowed_files: &[&str] =
-        &["src/main.rs", "src/safety/paths.rs", "src/config/workspace.rs", "src/mcp/transport.rs"];
-    let allowed_dirs: &[&str] = &["src/parser/"];
+    let allowed_files: &[&str] = &[
+        "src/main.rs",
+        "src/safety/paths.rs",
+        "src/config/workspace.rs",
+        "src/mcp/transport.rs",
+        "src/config/runtime_config.rs",
+    ];
+    let allowed_dirs: &[&str] = &["src/parser/", "src/cache/", "src/scan/", "src/observability/"];
 
     let mut violations: Vec<String> = Vec::new();
 

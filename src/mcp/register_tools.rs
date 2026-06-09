@@ -1,9 +1,9 @@
-//! Tool registry — metadata and dispatch for all V1 and V2 AST tools.
+//! Tool registry — metadata and dispatch for all V1–V5 AST tools.
 use serde_json::{json, Value};
 
-use crate::config::workspace::Workspace;
 use crate::context;
 use crate::extraction;
+use crate::mcp::server_context::ServerContext;
 use crate::metrics;
 use crate::tools;
 use crate::workspace;
@@ -15,8 +15,8 @@ pub struct ToolSpec {
     pub input_schema: Value,
 }
 
-/// Return metadata for all registered V1 tools.
-pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
+/// Return metadata for all registered tools.
+pub fn tools(_ctx: &ServerContext) -> Vec<ToolSpec> {
     vec![
         ToolSpec {
             name: "ast_health_check",
@@ -893,65 +893,323 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path", "function_range", "operation"]
             }),
         },
+        // ── V5 cache tools ──
+        ToolSpec {
+            name: "ast_cache_status",
+            description: "Return cache sizes, TTLs, and cache health for parse tree, query result, framework result, and request log caches.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_clear_caches",
+            description: "Clear selected AST caches. Clearing parse trees also clears dependent query and framework result caches.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "caches": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["parse_trees", "query_results", "framework_results", "request_log", "all"]
+                        },
+                        "description": "Cache names to clear"
+                    }
+                },
+                "required": ["caches"]
+            }),
+        },
+        // ── V5 config tools ──
+        ToolSpec {
+            name: "ast_get_config",
+            description: "Return effective runtime configuration. Optionally include the source breakdown (defaults, environment, runtime overrides).",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "include_defaults": {
+                        "type": "boolean",
+                        "description": "Include defaults/environment/runtime overrides breakdown (default: false)"
+                    }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_update_runtime_config",
+            description: "Update safe runtime configuration values in memory. Rejects updates to workspace_path, parser registry, and language grammar paths.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "limits": { "type": "object", "description": "Partial RuntimeLimits" },
+                    "timeouts_ms": { "type": "object", "description": "Partial RuntimeTimeouts" },
+                    "caches": { "type": "object", "description": "Partial RuntimeCaches" },
+                    "scans": { "type": "object", "description": "Partial RuntimeScans" },
+                    "debug": { "type": "object", "description": "Partial RuntimeDebug" }
+                },
+                "required": []
+            }),
+        },
+        // ── V5 observability tools ──
+        ToolSpec {
+            name: "ast_request_log",
+            description: "Return recent AST MCP request history. Filter by tool name, status (ok/error/timeout/cancelled), or file path.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "tool": { "type": "string", "description": "Filter by tool name" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["ok", "error", "timeout", "cancelled"],
+                        "description": "Filter by request status"
+                    },
+                    "file_path": { "type": "string", "description": "Filter by file path (substring match)" },
+                    "limit": { "type": "integer", "description": "Max entries to return (default: 50)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_clear_request_log",
+            description: "Clear request log entries. Optionally filter by tool name to clear only matching entries.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "tool": { "type": "string", "description": "If provided, only clear entries for this tool" }
+                },
+                "required": []
+            }),
+        },
+        // ── V5 health tools ──
+        ToolSpec {
+            name: "ast_readiness",
+            description: "Report whether the AST MCP server is ready to serve structural analysis requests. Checks workspace, parser registry, and cache initialization.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "require_languages": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Optional list of required languages"
+                    }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_liveness",
+            description: "Report whether the AST MCP server process is alive and internally responsive. Returns uptime and optional memory usage.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_parser_status",
+            description: "Return parser registry and parser health. Optionally filter by language.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "language": { "type": "string", "description": "Optional language filter" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_rebuild_parser_cache",
+            description: "Clear and rebuild parser-related caches. Does not recompile parsers; refreshes runtime parser/query cache objects.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "languages": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Languages to rebuild (omit for all)"
+                    }
+                },
+                "required": []
+            }),
+        },
+        // ── V5 workspace scan tools ──
+        ToolSpec {
+            name: "ast_workspace_scan_status",
+            description: "Return status of currently running workspace-wide scans. Optionally filter by scan ID.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "scan_id": { "type": "string", "description": "Optional scan ID to query" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_cancel_workspace_scan",
+            description: "Cancel a running workspace-wide scan by scan ID.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "scan_id": { "type": "string", "description": "Scan ID to cancel" }
+                },
+                "required": ["scan_id"]
+            }),
+        },
+        // ── V5 analysis tools ──
+        ToolSpec {
+            name: "ast_complexity_summary",
+            description: "Return structural complexity information for one file or a bounded workspace scan. Includes hotspot detection with risk heuristics.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Single file to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "max_files": { "type": "integer", "description": "Max files to scan (default: 200)" },
+                    "include_functions": { "type": "boolean", "description": "Include function-level analysis (default: true)" },
+                    "include_classes": { "type": "boolean", "description": "Include class-level analysis (default: true)" },
+                    "max_results": { "type": "integer", "description": "Max hotspots to return (default: 500)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_detect_large_nodes",
+            description: "Find large syntax nodes such as huge functions, classes, components, test suites, or modules.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Single file to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "max_files": { "type": "integer", "description": "Max files to scan (default: 200)" },
+                    "min_lines": { "type": "integer", "description": "Minimum line threshold (default: 80)" },
+                    "node_kinds": { "type": "array", "items": { "type": "string" }, "description": "Filter by node kinds" },
+                    "max_results": { "type": "integer", "description": "Max results (default: 200)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_detect_duplicate_shapes",
+            description: "Detect structurally similar code shapes using heuristic fingerprinting. Supports identifier and literal normalization.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "max_files": { "type": "integer", "description": "Max files to scan (default: 200)" },
+                    "min_node_lines": { "type": "integer", "description": "Minimum node lines (default: 10)" },
+                    "node_kinds": { "type": "array", "items": { "type": "string" }, "description": "Filter by node kinds" },
+                    "normalize_identifiers": { "type": "boolean", "description": "Normalize identifiers (default: true)" },
+                    "normalize_literals": { "type": "boolean", "description": "Normalize literals (default: true)" },
+                    "max_candidates": { "type": "integer", "description": "Max candidates (default: 200)" }
+                },
+                "required": ["glob"]
+            }),
+        },
     ]
 }
 
 /// Dispatch a tool call by name to its handler.
 /// Returns `None` if the tool name is not registered.
-pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<Value> {
+pub fn dispatch(name: &str, arguments: Value, ctx: &ServerContext) -> Option<Value> {
     match name {
-        "ast_health_check" => Some(tools::health_check::handle(workspace, arguments)),
+        "ast_health_check" => Some(tools::health_check::handle(&ctx.workspace, arguments)),
         "ast_list_supported_languages" => Some(tools::list_supported_languages::handle(arguments)),
-        "ast_parse_file" => Some(tools::parse_file::handle(workspace, arguments)),
-        "ast_file_outline" => Some(tools::file_outline::handle(workspace, arguments)),
-        "ast_top_level_nodes" => Some(tools::top_level_nodes::handle(workspace, arguments)),
-        "ast_query" => Some(tools::query::handle(workspace, arguments)),
-        "ast_find_imports" => Some(tools::find_imports::handle(workspace, arguments)),
-        "ast_find_exports" => Some(tools::find_exports::handle(workspace, arguments)),
-        "ast_find_functions" => Some(tools::find_functions::handle(workspace, arguments)),
-        "ast_find_classes" => Some(tools::find_classes::handle(workspace, arguments)),
-        "ast_chunk_file" => Some(tools::chunk_file::handle(workspace, arguments)),
-        "ast_enclosing_node" => Some(tools::enclosing_node::handle(workspace, arguments)),
+        "ast_parse_file" => Some(tools::parse_file::handle(&ctx.workspace, arguments)),
+        "ast_file_outline" => Some(tools::file_outline::handle(&ctx.workspace, arguments)),
+        "ast_top_level_nodes" => Some(tools::top_level_nodes::handle(&ctx.workspace, arguments)),
+        "ast_query" => Some(tools::query::handle(&ctx.workspace, arguments)),
+        "ast_find_imports" => Some(tools::find_imports::handle(&ctx.workspace, arguments)),
+        "ast_find_exports" => Some(tools::find_exports::handle(&ctx.workspace, arguments)),
+        "ast_find_functions" => Some(tools::find_functions::handle(&ctx.workspace, arguments)),
+        "ast_find_classes" => Some(tools::find_classes::handle(&ctx.workspace, arguments)),
+        "ast_chunk_file" => Some(tools::chunk_file::handle(&ctx.workspace, arguments)),
+        "ast_enclosing_node" => Some(tools::enclosing_node::handle(&ctx.workspace, arguments)),
         // V2 tools
-        "ast_enclosing_scope" => Some(context::enclosing_scope::handle(workspace, arguments)),
-        "ast_node_at_range" => Some(context::node_at_range::handle(workspace, arguments)),
-        "ast_node_text" => Some(context::node_text::handle(workspace, arguments)),
-        "ast_context_for_range" => Some(context::context_for_range::handle(workspace, arguments)),
-        "ast_context_pack" => Some(context::context_pack::handle(workspace, arguments)),
-        "ast_find_calls" => Some(extraction::calls::handle(workspace, arguments)),
-        "ast_find_member_access" => Some(extraction::member_access::handle(workspace, arguments)),
-        "ast_find_literals" => Some(extraction::literals::handle(workspace, arguments)),
-        "ast_find_template_literals" => {
-            Some(extraction::template_literals::handle(workspace, arguments))
+        "ast_enclosing_scope" => Some(context::enclosing_scope::handle(&ctx.workspace, arguments)),
+        "ast_node_at_range" => Some(context::node_at_range::handle(&ctx.workspace, arguments)),
+        "ast_node_text" => Some(context::node_text::handle(&ctx.workspace, arguments)),
+        "ast_context_for_range" => {
+            Some(context::context_for_range::handle(&ctx.workspace, arguments))
         }
-        "ast_query_workspace" => Some(workspace::query_workspace::handle(workspace, arguments)),
-        "ast_file_metrics" => Some(metrics::file_metrics::handle(workspace, arguments)),
+        "ast_context_pack" => Some(context::context_pack::handle(&ctx.workspace, arguments)),
+        "ast_find_calls" => Some(extraction::calls::handle(&ctx.workspace, arguments)),
+        "ast_find_member_access" => {
+            Some(extraction::member_access::handle(&ctx.workspace, arguments))
+        }
+        "ast_find_literals" => Some(extraction::literals::handle(&ctx.workspace, arguments)),
+        "ast_find_template_literals" => {
+            Some(extraction::template_literals::handle(&ctx.workspace, arguments))
+        }
+        "ast_query_workspace" => {
+            Some(workspace::query_workspace::handle(&ctx.workspace, arguments))
+        }
+        "ast_file_metrics" => Some(metrics::file_metrics::handle(&ctx.workspace, arguments)),
         // V3 tools
         "ast_find_schema_definitions" => {
-            Some(tools::find_schema_definitions::handle(workspace, arguments))
+            Some(tools::find_schema_definitions::handle(&ctx.workspace, arguments))
         }
         "ast_find_react_components" => {
-            Some(tools::find_react_components::handle(workspace, arguments))
+            Some(tools::find_react_components::handle(&ctx.workspace, arguments))
         }
-        "ast_find_hooks" => Some(tools::find_hooks::handle(workspace, arguments)),
-        "ast_find_routes" => Some(tools::find_routes::handle(workspace, arguments)),
-        "ast_find_decorators" => Some(tools::find_decorators::handle(workspace, arguments)),
-        "ast_find_tests" => Some(tools::find_tests::handle(workspace, arguments)),
-        "ast_dependency_edges" => Some(tools::find_dependency_edges::handle(workspace, arguments)),
+        "ast_find_hooks" => Some(tools::find_hooks::handle(&ctx.workspace, arguments)),
+        "ast_find_routes" => Some(tools::find_routes::handle(&ctx.workspace, arguments)),
+        "ast_find_decorators" => Some(tools::find_decorators::handle(&ctx.workspace, arguments)),
+        "ast_find_tests" => Some(tools::find_tests::handle(&ctx.workspace, arguments)),
+        "ast_dependency_edges" => {
+            Some(tools::find_dependency_edges::handle(&ctx.workspace, arguments))
+        }
         // V4 tools
-        "ast_rewrite_preview" => Some(tools::rewrite_preview::handle(workspace, arguments)),
-        "ast_validate_rewrite" => Some(tools::validate_rewrite::handle(workspace, arguments)),
-        "ast_parse_after_rewrite" => Some(tools::parse_after_rewrite::handle(workspace, arguments)),
-        "ast_insert_import_preview" => Some(tools::insert_import::handle(workspace, arguments)),
+        "ast_rewrite_preview" => Some(tools::rewrite_preview::handle(&ctx.workspace, arguments)),
+        "ast_validate_rewrite" => Some(tools::validate_rewrite::handle(&ctx.workspace, arguments)),
+        "ast_parse_after_rewrite" => {
+            Some(tools::parse_after_rewrite::handle(&ctx.workspace, arguments))
+        }
+        "ast_insert_import_preview" => {
+            Some(tools::insert_import::handle(&ctx.workspace, arguments))
+        }
         "ast_remove_unused_import_preview" => {
-            Some(tools::remove_unused_import::handle(workspace, arguments))
+            Some(tools::remove_unused_import::handle(&ctx.workspace, arguments))
         }
-        "ast_rename_local_preview" => Some(tools::rename_local::handle(workspace, arguments)),
-        "ast_wrap_node_preview" => Some(tools::wrap_node::handle(workspace, arguments)),
-        "ast_add_decorator_preview" => Some(tools::add_decorator::handle(workspace, arguments)),
+        "ast_rename_local_preview" => Some(tools::rename_local::handle(&ctx.workspace, arguments)),
+        "ast_wrap_node_preview" => Some(tools::wrap_node::handle(&ctx.workspace, arguments)),
+        "ast_add_decorator_preview" => {
+            Some(tools::add_decorator::handle(&ctx.workspace, arguments))
+        }
         "ast_modify_function_signature_preview" => {
-            Some(tools::modify_signature::handle(workspace, arguments))
+            Some(tools::modify_signature::handle(&ctx.workspace, arguments))
         }
+        // V5 tools
+        "ast_get_config" => Some(tools::get_config::handle(&ctx.runtime_config, arguments)),
+        "ast_update_runtime_config" => {
+            Some(tools::update_runtime_config::handle(&ctx.runtime_config, arguments))
+        }
+        "ast_request_log" => Some(tools::request_log::handle(&ctx.request_tracker, arguments)),
+        "ast_clear_request_log" => {
+            Some(tools::clear_request_log::handle(&ctx.request_tracker, arguments))
+        }
+        "ast_cache_status" => {
+            Some(tools::cache_status::handle(&ctx.cache_manager, &ctx.request_tracker))
+        }
+        "ast_clear_caches" => {
+            Some(tools::clear_caches::handle(&ctx.cache_manager, &ctx.request_tracker, arguments))
+        }
+        "ast_readiness" => Some(tools::readiness::handle(&ctx.workspace, arguments)),
+        "ast_liveness" => Some(tools::liveness::handle(ctx.started_at)),
+        "ast_parser_status" => Some(tools::parser_status_tool::handle(arguments)),
+        "ast_rebuild_parser_cache" => Some(tools::rebuild_parser_cache_tool::handle(arguments)),
+        "ast_workspace_scan_status" => {
+            Some(tools::workspace_scan_status::handle(&ctx.scan_registry, arguments))
+        }
+        "ast_cancel_workspace_scan" => {
+            Some(tools::cancel_workspace_scan::handle(&ctx.scan_registry, arguments))
+        }
+        "ast_complexity_summary" => {
+            Some(tools::complexity_summary::handle(&ctx.workspace, arguments))
+        }
+        "ast_detect_large_nodes" => {
+            Some(tools::detect_large_nodes::handle(&ctx.workspace, arguments))
+        }
+        "ast_detect_duplicate_shapes" => Some(tools::detect_duplicate_shapes::handle(arguments)),
         _ => None,
     }
 }
