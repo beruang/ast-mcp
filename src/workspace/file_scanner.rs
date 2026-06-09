@@ -96,32 +96,89 @@ fn is_ignored_dir(entry: &walkdir::DirEntry) -> bool {
 }
 
 fn simple_glob_match(pattern: &str, path: &str) -> bool {
-    // Minimal glob: support ** and *
-    let parts: Vec<&str> = pattern.split("**").collect();
-    if parts.len() == 1 {
-        // No ** — simple prefix/suffix match
-        if let Some(stripped) = pattern.strip_suffix('*') {
-            return path.starts_with(stripped);
-        }
-        if let Some(stripped) = pattern.strip_prefix('*') {
-            return path.ends_with(stripped);
-        }
-        return path.contains(pattern);
+    // Convert a glob pattern with ** and * into a simple matcher.
+    // Split on ** to handle recursive parts, then match each segment with * wildcard support.
+    let segments: Vec<&str> = pattern.split("**").collect();
+
+    if segments.len() == 1 {
+        return single_star_match(segments[0], path);
     }
-    // Has ** — match prefix and suffix
-    for (i, part) in parts.iter().enumerate() {
-        if part.is_empty() {
+
+    // Has ** — match prefix, intermediate segments, and suffix
+    let mut remaining = path;
+    for (i, seg) in segments.iter().enumerate() {
+        if seg.is_empty() {
             continue;
         }
-        if i == 0 && !path.starts_with(part) {
-            return false;
-        }
-        if i == parts.len() - 1 && !path.ends_with(part) {
-            return false;
-        }
-        if i > 0 && i < parts.len() - 1 && !path.contains(part) {
-            return false;
+        if i == 0 {
+            // First segment: must match prefix
+            if let Some(tail) = single_star_prefix_match(seg, remaining) {
+                remaining = tail;
+            } else {
+                return false;
+            }
+        } else if i == segments.len() - 1 {
+            // Last segment: must match suffix
+            return single_star_suffix_match(seg, remaining);
+        } else {
+            // Middle segment: must appear somewhere
+            if let Some(pos) = find_star_match(seg, remaining) {
+                remaining = &remaining[pos..];
+            } else {
+                return false;
+            }
         }
     }
     true
+}
+
+/// Match a pattern that may contain * as a wildcard (no **).
+fn single_star_match(pat: &str, path: &str) -> bool {
+    let Some(star_idx) = pat.find('*') else {
+        return path == pat || path.contains(pat);
+    };
+    let prefix = &pat[..star_idx];
+    let suffix = &pat[star_idx + 1..];
+    path.starts_with(prefix)
+        && path[prefix.len()..].ends_with(suffix)
+        && path.len() >= prefix.len() + suffix.len()
+}
+
+/// Match pattern as a prefix of path, returning the remaining tail. Pattern may contain *.
+fn single_star_prefix_match<'a>(pat: &str, path: &'a str) -> Option<&'a str> {
+    let star_idx = pat.find('*')?;
+    let prefix = &pat[..star_idx];
+    let suffix = &pat[star_idx + 1..];
+    let rest = path.strip_prefix(prefix)?;
+    if suffix.is_empty() {
+        return Some(rest);
+    }
+    let pos = rest.find(suffix)?;
+    Some(&rest[pos + suffix.len()..])
+}
+
+/// Match pattern as a suffix of path. Pattern may contain *.
+fn single_star_suffix_match(pat: &str, path: &str) -> bool {
+    let Some(star_idx) = pat.find('*') else {
+        return path.ends_with(pat);
+    };
+    let prefix = &pat[..star_idx];
+    let suffix = &pat[star_idx + 1..];
+    path.ends_with(suffix)
+        && path.len() >= prefix.len() + suffix.len()
+        && path[..path.len() - suffix.len()].ends_with(prefix)
+}
+
+/// Find the position where a star-pattern matches within path.
+fn find_star_match(pat: &str, path: &str) -> Option<usize> {
+    let star_idx = pat.find('*')?;
+    let prefix = &pat[..star_idx];
+    let suffix = &pat[star_idx + 1..];
+    let start = path.find(prefix)?;
+    let after_prefix = &path[start + prefix.len()..];
+    if suffix.is_empty() {
+        return Some(start);
+    }
+    let end = after_prefix.find(suffix)?;
+    Some(start + prefix.len() + end + suffix.len())
 }

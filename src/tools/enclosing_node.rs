@@ -8,13 +8,16 @@ use crate::parser::positions;
 use crate::safety;
 use crate::shared::errors::AstToolError;
 use crate::shared::language::LanguageId;
+use crate::shared::lenient;
 use crate::shared::position::Position;
 
 #[derive(Deserialize, Default)]
 #[serde(default)]
 pub struct AstEnclosingNodeInput {
     pub file_path: String,
+    #[serde(deserialize_with = "lenient::deserialize_lenient_u32")]
     pub line: u32,
+    #[serde(deserialize_with = "lenient::deserialize_lenient_u32")]
     pub character: u32,
     pub kinds: Option<Vec<String>>,
     pub include_source_text: bool,

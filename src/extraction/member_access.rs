@@ -129,14 +129,18 @@ fn build_member(
 
     let object_text = node
         .child_by_field_name("object")
+        .or_else(|| node.child_by_field_name("operand"))
         .map(|o| source[o.byte_range().start..o.byte_range().end].to_string())
         .unwrap_or_default();
 
     let property = node
         .child_by_field_name("property")
+        .or_else(|| node.child_by_field_name("field"))
         .or_else(|| {
-            node.child(node.child_count().saturating_sub(1))
-                .filter(|c| c.kind() == "property_identifier" || c.kind() == "identifier")
+            // Fallback: look for last child that is a valid property identifier
+            node.child(node.child_count().saturating_sub(1)).filter(|c| {
+                matches!(c.kind(), "property_identifier" | "identifier" | "field_identifier")
+            })
         })
         .map(|p| source[p.byte_range().start..p.byte_range().end].to_string())
         .unwrap_or_default();
