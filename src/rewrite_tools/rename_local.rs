@@ -258,9 +258,9 @@ fn find_enclosing_scope<'a>(node: &tree_sitter::Node<'a>) -> Option<tree_sitter:
 }
 
 fn is_imported_or_exported(
-    root: &tree_sitter::Node,
+    _root: &tree_sitter::Node,
     node: &tree_sitter::Node,
-    target_byte: usize,
+    _target_byte: usize,
 ) -> bool {
     // Walk ancestors — if any is an import_statement or export_statement, reject
     let mut current = *node;
@@ -269,39 +269,13 @@ fn is_imported_or_exported(
             "import_statement" | "export_statement" | "export_specifier" => return true,
             _ => {}
         }
-        // Also check: is this node at the top level of the module?
-        if current.parent().is_none() {
-            break;
-        }
         if let Some(parent) = current.parent() {
             current = parent;
         } else {
             break;
         }
     }
-    // Check if it's a top-level declaration by looking at depth
-    let depth = node_depth(root, target_byte);
-    depth <= 3 // Module → statement → declaration → identifier ≈ depth 3-4
-}
-
-fn node_depth(root: &tree_sitter::Node, byte: usize) -> usize {
-    fn depth(node: &tree_sitter::Node, byte: usize, current: usize) -> usize {
-        if !node.byte_range().contains(&byte) {
-            return 0;
-        }
-        if node.child_count() == 0 {
-            return current;
-        }
-        for i in 0..node.child_count() {
-            if let Some(child) = node.child(i) {
-                if child.byte_range().contains(&byte) {
-                    return depth(&child, byte, current + 1);
-                }
-            }
-        }
-        current
-    }
-    depth(root, byte, 1)
+    false
 }
 
 fn is_shorthand_property(pair: &tree_sitter::Node, _node: &tree_sitter::Node) -> bool {

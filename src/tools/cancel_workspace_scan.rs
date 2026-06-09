@@ -44,10 +44,9 @@ pub fn handle(registry: &ScanRegistry, arguments: Value) -> Value {
         .unwrap_or_default()
     } else {
         serde_json::json!({
-            "error": {
-                "code": "workspace_scan_not_found",
-                "message": format!("scan {} not found", input.scan_id)
-            }
+            "scan_id": input.scan_id,
+            "cancelled": false,
+            "message": format!("no active scan with id '{}'; nothing to cancel", input.scan_id)
         })
     }
 }
