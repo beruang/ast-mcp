@@ -5,6 +5,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::shared::lenient;
+
 // ── RuntimeConfig (spec section 9) ──
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -103,80 +105,139 @@ pub struct RuntimeDebug {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PartialRuntimeLimits {
     #[serde(rename = "maxFileBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_file_bytes: Option<usize>,
     #[serde(rename = "maxParseTreeNodes", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_parse_tree_nodes: Option<usize>,
     #[serde(rename = "maxQueryResults", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_query_results: Option<usize>,
     #[serde(rename = "maxWorkspaceFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_workspace_files: Option<usize>,
     #[serde(rename = "maxWorkspaceResults", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_workspace_results: Option<usize>,
     #[serde(rename = "maxContextCharacters", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_context_characters: Option<usize>,
     #[serde(rename = "maxChunkLines", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_chunk_lines: Option<usize>,
     #[serde(rename = "maxChangedFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_changed_files: Option<usize>,
     #[serde(rename = "maxEdits", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_edits: Option<usize>,
     #[serde(rename = "maxDuplicateCandidates", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_duplicate_candidates: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PartialRuntimeTimeouts {
     #[serde(rename = "parseFile", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub parse_file: Option<u64>,
     #[serde(rename = "queryFile", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub query_file: Option<u64>,
     #[serde(rename = "queryWorkspace", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub query_workspace: Option<u64>,
     #[serde(rename = "chunkFile", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub chunk_file: Option<u64>,
     #[serde(rename = "frameworkExtraction", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub framework_extraction: Option<u64>,
     #[serde(rename = "rewritePreview", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub rewrite_preview: Option<u64>,
     #[serde(rename = "complexitySummary", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub complexity_summary: Option<u64>,
     #[serde(rename = "duplicateDetection", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub duplicate_detection: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PartialRuntimeCaches {
     #[serde(rename = "parseTreeTtlMs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub parse_tree_ttl_ms: Option<u64>,
     #[serde(rename = "queryResultTtlMs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub query_result_ttl_ms: Option<u64>,
     #[serde(rename = "frameworkResultTtlMs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u64")]
     pub framework_result_ttl_ms: Option<u64>,
     #[serde(rename = "requestLogMaxEntries", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub request_log_max_entries: Option<usize>,
     #[serde(rename = "maxCachedFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_cached_files: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PartialRuntimeScans {
     #[serde(rename = "maxParallelism", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_usize")]
     pub max_parallelism: Option<usize>,
     #[serde(rename = "respectGitignore", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub respect_gitignore: Option<bool>,
     #[serde(rename = "includeHidden", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_hidden: Option<bool>,
     #[serde(rename = "defaultExcludeGlobs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub default_exclude_globs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct PartialRuntimeDebug {
     #[serde(rename = "verboseLogging", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub verbose_logging: Option<bool>,
     #[serde(rename = "includeNodeTextInLogs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_node_text_in_logs: Option<bool>,
     #[serde(rename = "includeRawTreeDebug", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_raw_tree_debug: Option<bool>,
 }
 
@@ -185,6 +246,8 @@ pub struct PartialRuntimeDebug {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct GetConfigInput {
     #[serde(rename = "includeDefaults", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_defaults: Option<bool>,
 }
 
@@ -208,6 +271,7 @@ pub struct UpdateRuntimeConfigInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<PartialRuntimeLimits>,
     #[serde(rename = "timeoutsMs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub timeouts_ms: Option<PartialRuntimeTimeouts>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub caches: Option<PartialRuntimeCaches>,
@@ -256,10 +320,12 @@ pub struct AstCacheStatus {
 pub struct CacheSectionStatus {
     pub entries: usize,
     #[serde(rename = "maxEntries", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_entries: Option<usize>,
     #[serde(rename = "ttlMs")]
     pub ttl_ms: u64,
     #[serde(rename = "estimatedBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub estimated_bytes: Option<usize>,
 }
 
@@ -299,6 +365,7 @@ pub struct RequestLogInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<RequestStatus>,
     #[serde(rename = "filePath", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub file_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<usize>,
@@ -328,17 +395,23 @@ pub struct RequestLogEntry {
     #[serde(rename = "startedAt")]
     pub started_at: String,
     #[serde(rename = "completedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub completed_at: Option<String>,
     #[serde(rename = "durationMs", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub duration_ms: Option<u64>,
     pub status: RequestStatus,
     #[serde(rename = "errorCode", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub error_code: Option<String>,
     #[serde(rename = "errorMessage", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub error_message: Option<String>,
     #[serde(rename = "filePath", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub file_path: Option<String>,
     #[serde(rename = "resultCount", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub result_count: Option<usize>,
 }
 
@@ -358,6 +431,7 @@ pub struct ClearRequestLogResult {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ReadinessInput {
     #[serde(rename = "requireLanguages", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub require_languages: Option<Vec<String>>,
 }
 
@@ -394,8 +468,10 @@ pub struct LivenessResult {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct MemoryUsage {
     #[serde(rename = "rssBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub rss_bytes: Option<u64>,
     #[serde(rename = "heapBytes", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub heap_bytes: Option<u64>,
 }
 
@@ -404,6 +480,7 @@ pub struct MemoryUsage {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct WorkspaceScanStatusInput {
     #[serde(rename = "scanId", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub scan_id: Option<String>,
 }
 
@@ -421,6 +498,7 @@ pub struct WorkspaceScanInfo {
     #[serde(rename = "startedAt")]
     pub started_at: String,
     #[serde(rename = "completedAt", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub completed_at: Option<String>,
     #[serde(rename = "filesDiscovered")]
     pub files_discovered: usize,
@@ -474,6 +552,7 @@ pub struct ParserStatus {
     #[serde(rename = "queryCount")]
     pub query_count: usize,
     #[serde(rename = "lastError", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_error: Option<String>,
 }
 
@@ -500,16 +579,21 @@ pub struct ParserRebuildFailure {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ComplexitySummaryInput {
     #[serde(rename = "filePath", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub file_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub glob: Option<String>,
     #[serde(rename = "maxFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_files: Option<usize>,
     #[serde(rename = "includeFunctions", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub include_functions: Option<bool>,
     #[serde(rename = "includeClasses", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub include_classes: Option<bool>,
     #[serde(rename = "maxResults", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_results: Option<usize>,
 }
 
@@ -571,16 +655,21 @@ pub struct ComplexityHotspot {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct DetectLargeNodesInput {
     #[serde(rename = "filePath", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub file_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub glob: Option<String>,
     #[serde(rename = "maxFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_files: Option<usize>,
     #[serde(rename = "minLines", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub min_lines: Option<usize>,
     #[serde(rename = "nodeKinds", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub node_kinds: Option<Vec<String>>,
     #[serde(rename = "maxResults", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_results: Option<usize>,
 }
 
@@ -615,16 +704,22 @@ pub struct LargeNode {
 pub struct DetectDuplicateShapesInput {
     pub glob: String,
     #[serde(rename = "maxFiles", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_files: Option<usize>,
     #[serde(rename = "minNodeLines", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub min_node_lines: Option<usize>,
     #[serde(rename = "nodeKinds", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub node_kinds: Option<Vec<String>>,
     #[serde(rename = "normalizeIdentifiers", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub normalize_identifiers: Option<bool>,
     #[serde(rename = "normalizeLiterals", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub normalize_literals: Option<bool>,
     #[serde(rename = "maxCandidates", skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub max_candidates: Option<usize>,
 }
 

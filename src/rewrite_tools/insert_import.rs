@@ -58,6 +58,27 @@ fn insert_import(
     let existing = existing_imports.iter().find(|ei| ei.source == import.source);
 
     let operation = if let Some(ei) = existing {
+        // Check for no-op: same default, same namespace, same type-only, and all named imports already present
+        let same_default = ei.default_import == import.default_import;
+        let same_namespace = ei.namespace_import == import.namespace_import;
+        let same_type_only = ei.is_type_only == import.is_type_only.unwrap_or(false);
+        let all_names_present = import
+            .named_imports
+            .iter()
+            .all(|n| import_merge::has_named_import(&ei.named_imports, n));
+
+        if same_default && same_namespace && same_type_only && all_names_present {
+            // No-op: import spec already matches
+            return RewritePreview {
+                safe: true,
+                changed_files: vec![],
+                edit_count: 0,
+                diff: None,
+                edits: vec![],
+                parse_after_rewrite: None,
+                violations: vec![],
+            };
+        }
         // Merge with existing import
         merge_import_operation(file_path, ei, import, is_typescript)
     } else {
