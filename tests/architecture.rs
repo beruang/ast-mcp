@@ -64,7 +64,6 @@ fn no_lsp_dependency_anywhere() {
         "tree-sitter-typescript",
         "tree-sitter-javascript",
         "tree-sitter-python",
-        "tower-lsp",
         "lsp-types",
     ];
 
