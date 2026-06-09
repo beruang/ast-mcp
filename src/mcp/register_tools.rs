@@ -558,6 +558,117 @@ pub fn tools(_workspace: &Workspace) -> Vec<ToolSpec> {
                 "required": ["file_path"]
             }),
         },
+        // ── V3 tools ──
+        ToolSpec {
+            name: "ast_find_schema_definitions",
+            description: "Find schema, model, and data-shape definitions. Detects Zod schemas, TypeScript interfaces/types, Pydantic BaseModel, Python dataclasses, SQLAlchemy models, Go structs, and Rust structs/enums. Extracts field names and types.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "schema_kinds": { "type": "array", "items": { "type": "string" }, "description": "Filter by schema kind (zod, typescript_interface, pydantic, dataclass, go_struct, rust_struct, rust_enum)" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 300)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 1000)" },
+                    "include_fields": { "type": "boolean", "description": "Include field names and types (default: true)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_react_components",
+            description: "Find React component definitions in TSX/JSX/TS/JS files. Detects function components, arrow components, class components (extends React.Component), memo/forwardRef wrappers. Returns component kind, export status, props, hooks used, and JSX root element.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 200)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 500)" },
+                    "include_hooks": { "type": "boolean", "description": "Include hooks used inside each component (default: true)" },
+                    "include_jsx_summary": { "type": "boolean", "description": "Include root JSX element name (default: false)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_hooks",
+            description: "Find React hooks (built-in and custom) in TSX/JSX/TS/JS files. Detects usages of 14 built-in hooks (useState, useEffect, etc.), custom hook usages (useXxx calls), and custom hook definitions.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 200)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 1000)" },
+                    "include_usages": { "type": "boolean", "description": "Include hook usages (default: true)" },
+                    "include_definitions": { "type": "boolean", "description": "Include custom hook definitions (default: true)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_routes",
+            description: "Find route definitions in application code. Detects Express/Fastify/Hono (app.get, router.post), Next.js (exported GET/POST handlers), NestJS (@Controller/@Get), FastAPI (@app.get), Flask (@app.route), Django (path/re_path/url), Go net/http, and Rust axum routes.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "frameworks": { "type": "array", "items": { "type": "string" }, "description": "Filter by framework (express, fastify, hono, nextjs, nestjs, fastapi, flask, django, go_http, axum)" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 200)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 500)" },
+                    "include_handler_context": { "type": "boolean", "description": "Include handler context (default: false)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_decorators",
+            description: "Find decorators, annotations, and attributes in source files. Detects TypeScript decorators (@Decorator), Python decorators (@decorator), and Rust attributes (#[attribute]). Attaches target declaration where possible.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "names": { "type": "array", "items": { "type": "string" }, "description": "Filter by decorator names" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 200)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 1000)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_find_tests",
+            description: "Find test definitions in source files. Detects Jest/Vitest/Mocha (describe/it/test), Pytest (test_* functions, Test* classes), unittest, Go tests, and Rust #[test] functions. Returns suite/test/fixture/hook kind with parent names.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan" },
+                    "frameworks": { "type": "array", "items": { "type": "string" }, "description": "Filter by framework (jest, vitest, mocha, pytest, unittest, go_testing, rust_test)" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 300)" },
+                    "max_results": { "type": "integer", "description": "Maximum results (default: 1000)" }
+                },
+                "required": []
+            }),
+        },
+        ToolSpec {
+            name: "ast_dependency_edges",
+            description: "Extract syntax-level dependency edges (imports, exports, requires, use, mod) from files. Supports TS/JS, Python, Go, and Rust. Filter by relative or external edges.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Workspace-relative path to a single file to analyze" },
+                    "glob": { "type": "string", "description": "Glob pattern for workspace scan (e.g. 'src/**/*.ts')" },
+                    "max_files": { "type": "integer", "description": "Maximum files to scan (default: 500)" },
+                    "max_results": { "type": "integer", "description": "Maximum edges to return (default: 5000)" },
+                    "include_external": { "type": "boolean", "description": "Include external package edges (default: true)" },
+                    "include_relative": { "type": "boolean", "description": "Include relative/local edges (default: true)" }
+                },
+                "required": []
+            }),
+        },
         ToolSpec {
             name: "ast_context_pack",
             description: "Return a compact, agent-ready structural context pack for a file position or range. Includes requested parts: imports, exports, enclosing scope, enclosing node, top-level outline.",
@@ -647,6 +758,18 @@ pub fn dispatch(name: &str, arguments: Value, workspace: &Workspace) -> Option<V
         }
         "ast_query_workspace" => Some(workspace::query_workspace::handle(workspace, arguments)),
         "ast_file_metrics" => Some(metrics::file_metrics::handle(workspace, arguments)),
+        // V3 tools
+        "ast_find_schema_definitions" => {
+            Some(tools::find_schema_definitions::handle(workspace, arguments))
+        }
+        "ast_find_react_components" => {
+            Some(tools::find_react_components::handle(workspace, arguments))
+        }
+        "ast_find_hooks" => Some(tools::find_hooks::handle(workspace, arguments)),
+        "ast_find_routes" => Some(tools::find_routes::handle(workspace, arguments)),
+        "ast_find_decorators" => Some(tools::find_decorators::handle(workspace, arguments)),
+        "ast_find_tests" => Some(tools::find_tests::handle(workspace, arguments)),
+        "ast_dependency_edges" => Some(tools::find_dependency_edges::handle(workspace, arguments)),
         _ => None,
     }
 }

@@ -185,7 +185,7 @@ fn sweep_list_supported_languages() {
     let result = tools::list_supported_languages::handle(json!({}));
     assert_no_error(&result, "ast_list_supported_languages");
     let langs = result["languages"].as_array().unwrap();
-    assert_eq!(langs.len(), 5);
+    assert_eq!(langs.len(), 7);
     // Each entry should have language, extensions, parser, available
     for lang in langs {
         assert!(lang["language"].is_string());
@@ -435,7 +435,7 @@ fn sweep_tool_list_count() {
     let dir = tempfile::tempdir().unwrap();
     let ws = workspace(&dir);
     let tool_specs = register_tools::tools(&ws);
-    assert_eq!(tool_specs.len(), 23, "expected exactly 23 tools, got {}", tool_specs.len());
+    assert_eq!(tool_specs.len(), 30, "expected exactly 30 tools, got {}", tool_specs.len());
 
     // Every tool must have a name, description, and inputSchema
     for spec in &tool_specs {

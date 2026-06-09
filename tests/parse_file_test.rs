@@ -13,19 +13,21 @@ fn health_check_ok() {
     assert_eq!(result["ok"], json!(true));
     assert!(result["workspacePath"].as_str().is_some());
     assert!(result["parsers"].is_array());
-    assert_eq!(result["parsers"].as_array().unwrap().len(), 5);
+    assert_eq!(result["parsers"].as_array().unwrap().len(), 7);
     assert!(result["limits"]["maxFileBytes"].as_u64().is_some());
 }
 
 #[test]
-fn list_supported_languages_returns_five() {
+fn list_supported_languages_returns_seven() {
     let result = tools::list_supported_languages::handle(json!({}));
     let langs = result["languages"].as_array().unwrap();
-    assert_eq!(langs.len(), 5);
+    assert_eq!(langs.len(), 7);
     let names: Vec<&str> = langs.iter().map(|l| l["language"].as_str().unwrap()).collect();
     assert!(names.contains(&"typescript"));
     assert!(names.contains(&"python"));
     assert!(names.contains(&"javascript"));
+    assert!(names.contains(&"go"));
+    assert!(names.contains(&"rust"));
 }
 
 #[test]

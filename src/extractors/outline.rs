@@ -238,6 +238,8 @@ fn get_outline_candidates(
             crate::languages::javascript::outline_candidates(root, source)
         }
         LanguageId::Python => crate::languages::python::outline_candidates(root, source),
+        LanguageId::Go => crate::languages::go::outline_candidates(root, source),
+        LanguageId::Rust => crate::languages::rust::outline_candidates(root, source),
     }
 }
 

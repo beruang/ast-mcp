@@ -8,6 +8,8 @@ pub enum LanguageId {
     JavaScript,
     JavaScriptReact,
     Python,
+    Go,
+    Rust,
 }
 
 impl LanguageId {
@@ -18,6 +20,8 @@ impl LanguageId {
             LanguageId::JavaScript => "javascript",
             LanguageId::JavaScriptReact => "jsx",
             LanguageId::Python => "python",
+            LanguageId::Go => "go",
+            LanguageId::Rust => "rust",
         }
     }
 }
@@ -32,6 +36,8 @@ impl FromStr for LanguageId {
             "javascript" => Ok(LanguageId::JavaScript),
             "jsx" => Ok(LanguageId::JavaScriptReact),
             "python" => Ok(LanguageId::Python),
+            "go" => Ok(LanguageId::Go),
+            "rust" => Ok(LanguageId::Rust),
             _ => Err(AstToolError::UnsupportedLanguage(s.to_string())),
         }
     }
