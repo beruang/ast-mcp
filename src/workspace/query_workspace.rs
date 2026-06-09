@@ -104,7 +104,7 @@ pub fn handle(workspace: &Workspace, args: serde_json::Value) -> serde_json::Val
                 continue;
             }
         };
-        let query = match tree_sitter::Query::new(ts_lang, &input.query) {
+        let query = match tree_sitter::Query::new(&ts_lang, &input.query) {
             Ok(q) => q,
             Err(e) => {
                 return AstToolError::QueryInvalid(

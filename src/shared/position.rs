@@ -1,15 +1,16 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// 0-based line/character position. Character is counted in UTF-16 code units
 /// (BMP = 1, surrogate pairs = 2), matching the LSP model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Position {
     pub line: u32,
     pub character: u32,
 }
 
 /// Inclusive range between two positions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Range {
     pub start: Position,
     pub end: Position,

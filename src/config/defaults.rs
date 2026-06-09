@@ -44,3 +44,20 @@ pub const WORKSPACE_QUERY_TIMEOUT_MS: u64 = 20_000;
 
 /// Maximum parallel threads for workspace queries.
 pub const MAX_WORKSPACE_PARALLELISM: usize = 8;
+
+// ── V4 defaults (spec section 11) ──
+
+/// Maximum changed files per rewrite preview.
+pub const MAX_REWRITE_CHANGED_FILES: u32 = 20;
+
+/// Maximum edits per rewrite preview.
+pub const MAX_REWRITE_EDITS: u32 = 200;
+
+/// Maximum bytes in generated diff output.
+pub const MAX_DIFF_BYTES: u64 = 500_000;
+
+/// Maximum bytes per single text edit.
+pub const MAX_NEW_TEXT_BYTES_PER_EDIT: u64 = 100_000;
+
+/// Maximum files checked by parse-after-rewrite.
+pub const MAX_PARSE_AFTER_REWRITE_FILES: u32 = 20;

@@ -66,3 +66,54 @@ pub fn validate_range_in_bounds(
     }
     Ok((start_byte, end_byte))
 }
+
+/// Check whether `pos` is contained within `range` (inclusive start, exclusive end).
+pub fn range_contains_position(range: Range, pos: Position) -> bool {
+    let normalized = range.normalize();
+    if pos.line < normalized.start.line || pos.line > normalized.end.line {
+        return false;
+    }
+    if pos.line == normalized.start.line && pos.character < normalized.start.character {
+        return false;
+    }
+    if pos.line == normalized.end.line && pos.character >= normalized.end.character {
+        return false;
+    }
+    true
+}
+
+/// Check whether two ranges intersect.
+pub fn ranges_intersect(a: Range, b: Range) -> bool {
+    let a = a.normalize();
+    let b = b.normalize();
+    // a is entirely before b
+    if a.end.line < b.start.line {
+        return false;
+    }
+    if a.end.line == b.start.line && a.end.character <= b.start.character {
+        return false;
+    }
+    // b is entirely before a
+    if b.end.line < a.start.line {
+        return false;
+    }
+    if b.end.line == a.start.line && b.end.character <= a.start.character {
+        return false;
+    }
+    true
+}
+
+/// Check if a node's byte range matches the given external `Range` within
+/// a small tolerance (for practical position→byte→position round-trip drift).
+pub fn node_range_matches(
+    source: &str,
+    range: Range,
+    node_start_byte: usize,
+    node_end_byte: usize,
+) -> Result<bool, AstToolError> {
+    let (byte_start, byte_end) = validate_range_in_bounds(source, range)?;
+    // Allow 1-byte tolerance for position encoding edge cases
+    let start_ok = byte_start.abs_diff(node_start_byte) <= 1;
+    let end_ok = byte_end.abs_diff(node_end_byte) <= 1;
+    Ok(start_ok && end_ok)
+}

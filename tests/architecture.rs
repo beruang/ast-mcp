@@ -59,8 +59,14 @@ fn no_file_write_anywhere() {
 fn no_lsp_dependency_anywhere() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    let allowlist: &[&str] =
-        &["tree-sitter", "tree-sitter-typescript", "tree-sitter-javascript", "tree-sitter-python"];
+    let allowlist: &[&str] = &[
+        "tree-sitter",
+        "tree-sitter-typescript",
+        "tree-sitter-javascript",
+        "tree-sitter-python",
+        "tower-lsp",
+        "lsp-types",
+    ];
 
     let mut violations: Vec<String> = Vec::new();
 

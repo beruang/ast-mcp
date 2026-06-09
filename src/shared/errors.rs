@@ -48,6 +48,44 @@ pub enum AstToolError {
     ContextBudgetExceeded,
     #[error("internal error: {0}")]
     InternalError(String),
+
+    // ── V4 rewrite errors (spec section 30) ──
+    #[error("invalid range: {0}")]
+    RewriteInvalidRange(String),
+    #[error("node kind mismatch: {0}")]
+    RewriteNodeKindMismatch(String),
+    #[error("range not node-aligned: {0}")]
+    RewriteRangeNotNodeAligned(String),
+    #[error("unsupported operation: {0}")]
+    RewriteUnsupportedOperation(String),
+    #[error("unsupported language: {0}")]
+    RewriteUnsupportedLanguage(String),
+    #[error("too many files: {0}")]
+    RewriteTooManyFiles(String),
+    #[error("too many edits: {0}")]
+    RewriteTooManyEdits(String),
+    #[error("overlapping edits: {0}")]
+    RewriteOverlappingEdits(String),
+    #[error("new text too large: {0}")]
+    RewriteNewTextTooLarge(String),
+    #[error("diff too large: {0}")]
+    RewriteDiffTooLarge(String),
+    #[error("syntax error after rewrite: {0}")]
+    RewriteSyntaxErrorAfter(String),
+    #[error("ambiguous rewrite target: {0}")]
+    RewriteAmbiguousTarget(String),
+    #[error("import conflict: {0}")]
+    RewriteImportConflict(String),
+    #[error("parameter not found: {0}")]
+    RewriteParameterNotFound(String),
+    #[error("duplicate parameter: {0}")]
+    RewriteDuplicateParameter(String),
+    #[error("scope unavailable: {0}")]
+    RewriteScopeUnavailable(String),
+    #[error("identifier not found: {0}")]
+    RewriteIdentifierNotFound(String),
+    #[error("unsafe local rename: {0}")]
+    RewriteUnsafeLocalRename(String),
 }
 
 impl AstToolError {
@@ -78,6 +116,25 @@ impl AstToolError {
             AstToolError::PositionEncodingError(_) => "position_encoding_error",
             AstToolError::ContextBudgetExceeded => "context_budget_exceeded",
             AstToolError::InternalError(_) => "internal_error",
+            // V4 rewrite error codes
+            AstToolError::RewriteInvalidRange(_) => "rewrite_invalid_range",
+            AstToolError::RewriteNodeKindMismatch(_) => "rewrite_node_kind_mismatch",
+            AstToolError::RewriteRangeNotNodeAligned(_) => "rewrite_range_not_node_aligned",
+            AstToolError::RewriteUnsupportedOperation(_) => "rewrite_unsupported_operation",
+            AstToolError::RewriteUnsupportedLanguage(_) => "rewrite_unsupported_language",
+            AstToolError::RewriteTooManyFiles(_) => "rewrite_too_many_files",
+            AstToolError::RewriteTooManyEdits(_) => "rewrite_too_many_edits",
+            AstToolError::RewriteOverlappingEdits(_) => "rewrite_overlapping_edits",
+            AstToolError::RewriteNewTextTooLarge(_) => "rewrite_new_text_too_large",
+            AstToolError::RewriteDiffTooLarge(_) => "rewrite_diff_too_large",
+            AstToolError::RewriteSyntaxErrorAfter(_) => "rewrite_syntax_error_after",
+            AstToolError::RewriteAmbiguousTarget(_) => "rewrite_ambiguous_target",
+            AstToolError::RewriteImportConflict(_) => "rewrite_import_conflict",
+            AstToolError::RewriteParameterNotFound(_) => "rewrite_parameter_not_found",
+            AstToolError::RewriteDuplicateParameter(_) => "rewrite_duplicate_parameter",
+            AstToolError::RewriteScopeUnavailable(_) => "rewrite_scope_unavailable",
+            AstToolError::RewriteIdentifierNotFound(_) => "rewrite_identifier_not_found",
+            AstToolError::RewriteUnsafeLocalRename(_) => "rewrite_unsafe_local_rename",
         }
     }
 
