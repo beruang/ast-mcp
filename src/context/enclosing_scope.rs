@@ -132,11 +132,11 @@ fn classify_scope(
 ) -> Option<ScopeSummary> {
     let kind_str = node.kind();
     let scope_kind = match kind_str {
-        "program" | "module" => ScopeKind::Module,
-        "class_declaration" | "class_definition" => ScopeKind::Class,
-        "interface_declaration" => ScopeKind::Interface,
+        "program" | "module" | "source_file" => ScopeKind::Module,
+        "class_declaration" | "class_definition" | "type_declaration" => ScopeKind::Class,
+        "interface_declaration" | "interface_type" => ScopeKind::Interface,
         "function_declaration" | "function_definition" => ScopeKind::Function,
-        "method_definition" => ScopeKind::Method,
+        "method_definition" | "method_declaration" => ScopeKind::Method,
         "constructor" | "constructor_declaration" => ScopeKind::Constructor,
         "arrow_function" => ScopeKind::ArrowFunction,
         "lambda" | "lambda_expression" => ScopeKind::Lambda,

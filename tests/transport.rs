@@ -1,34 +1,21 @@
-//! Integration test: spawn the binary, send `tools/list` request via LSP framing.
+//! Integration test: spawn the binary, send `tools/list` request via MCP line-delimited JSON.
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Command, Stdio};
 
 fn send_message(stdin: &mut dyn Write, msg: &serde_json::Value) {
     let body = serde_json::to_string(msg).unwrap();
-    let header = format!("Content-Length: {}\r\n\r\n", body.len());
-    stdin.write_all(header.as_bytes()).unwrap();
     stdin.write_all(body.as_bytes()).unwrap();
+    stdin.write_all(b"\n").unwrap();
     stdin.flush().unwrap();
 }
 
 fn read_message(reader: &mut BufReader<impl Read>) -> Option<serde_json::Value> {
-    let mut header = String::new();
-    loop {
-        let mut line = String::new();
-        if reader.read_line(&mut line).ok()? == 0 {
-            return None;
-        }
-        if line == "\r\n" {
-            break;
-        }
-        header.push_str(&line);
+    let mut line = String::new();
+    reader.read_line(&mut line).ok()?;
+    if line.trim().is_empty() {
+        return None;
     }
-    let len = header
-        .lines()
-        .find_map(|l| l.strip_prefix("Content-Length: "))
-        .and_then(|s| s.trim().parse::<usize>().ok())?;
-    let mut body = vec![0u8; len];
-    reader.read_exact(&mut body).ok()?;
-    serde_json::from_slice(&body).ok()
+    serde_json::from_str(line.trim()).ok()
 }
 
 #[test]
@@ -65,7 +52,7 @@ fn tools_list_returns_health_check() {
         &mut stdin,
         &serde_json::json!({
             "jsonrpc": "2.0",
-            "method": "initialized",
+            "method": "notifications/initialized",
             "params": {}
         }),
     );
@@ -91,27 +78,6 @@ fn tools_list_returns_health_check() {
     let has_health_check =
         tools.iter().any(|t| t.get("name").and_then(|n| n.as_str()) == Some("ast_health_check"));
     assert!(has_health_check, "ast_health_check must be in tools list");
-
-    // 4. Send shutdown
-    send_message(
-        &mut stdin,
-        &serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "shutdown",
-            "params": {}
-        }),
-    );
-
-    // 5. Send exit notification
-    send_message(
-        &mut stdin,
-        &serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "exit",
-            "params": {}
-        }),
-    );
 
     drop(stdin);
     child.wait().unwrap();

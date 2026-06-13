@@ -58,8 +58,29 @@ fn insert_import(
     let existing = existing_imports.iter().find(|ei| ei.source == import.source);
 
     let operation = if let Some(ei) = existing {
+        // Check for no-op: same default, same namespace, same type-only, and all named imports already present
+        let same_default = ei.default_import == import.default_import;
+        let same_namespace = ei.namespace_import == import.namespace_import;
+        let same_type_only = ei.is_type_only == import.is_type_only.unwrap_or(false);
+        let all_names_present = import
+            .named_imports
+            .iter()
+            .all(|n| import_merge::has_named_import(&ei.named_imports, n));
+
+        if same_default && same_namespace && same_type_only && all_names_present {
+            // No-op: import spec already matches
+            return RewritePreview {
+                safe: true,
+                changed_files: vec![],
+                edit_count: 0,
+                diff: None,
+                edits: vec![],
+                parse_after_rewrite: None,
+                violations: vec![],
+            };
+        }
         // Merge with existing import
-        merge_import_operation(file_path, ei, import, is_typescript)
+        merge_import_operation(file_path, ei, import, is_typescript, is_go)
     } else {
         // Insert new import
         insert_new_import_operation(
@@ -87,6 +108,7 @@ fn merge_import_operation(
     existing: &ParsedImport,
     import: &ImportRequest,
     is_typescript: bool,
+    is_go: bool,
 ) -> RewriteOperation {
     let merged_names =
         import_merge::merge_named_imports(&existing.named_imports, &import.named_imports);
@@ -100,7 +122,9 @@ fn merge_import_operation(
         // Return a range-replace with a note (we still merge structurally)
     }
 
-    let new_text = if is_typescript {
+    let new_text = if is_go {
+        build_go_import_line(&import.source)
+    } else if is_typescript {
         build_ts_import_line(
             import.source.as_str(),
             existing.default_import.as_deref().or(import.default_import.as_deref()),
@@ -127,7 +151,7 @@ fn merge_import_operation(
 
 fn insert_new_import_operation(
     file_path: &str,
-    _source: &str,
+    source: &str,
     existing_imports: &[ParsedImport],
     import: &ImportRequest,
     _is_typescript: bool,
@@ -148,6 +172,39 @@ fn insert_new_import_operation(
         )
     };
 
+    // For Go: detect parenthesized import blocks and insert into them
+    if is_go && !existing_imports.is_empty() {
+        let in_grouped_block = existing_imports
+            .iter()
+            .any(|ei| !ei.raw_text.starts_with("import") && ei.raw_text.starts_with('"'));
+        if in_grouped_block {
+            // Find the last import spec in the grouped block and insert after it
+            let Some(last_spec) = existing_imports.last() else {
+                // Shouldn't happen — we already checked !is_empty()
+                return RewriteOperation::InsertBeforeNode {
+                    file_path: file_path.to_string(),
+                    range: Range {
+                        start: crate::shared::position::Position { line: 0, character: 0 },
+                        end: crate::shared::position::Position { line: 0, character: 0 },
+                    },
+                    expected_node_kind: None,
+                    new_text: format!("{}\n", import_line),
+                };
+            };
+            let insert_line = last_spec.end_line + 1;
+            let indent = detect_go_import_indent(source, last_spec.start_line as usize);
+            return RewriteOperation::InsertBeforeNode {
+                file_path: file_path.to_string(),
+                range: Range {
+                    start: crate::shared::position::Position { line: insert_line, character: 0 },
+                    end: crate::shared::position::Position { line: insert_line, character: 0 },
+                },
+                expected_node_kind: None,
+                new_text: format!("{}\"{}\"\n", indent, import.source),
+            };
+        }
+    }
+
     // Find insertion point: after the last import
     let insert_line = existing_imports.iter().map(|ei| ei.end_line + 1).max().unwrap_or(0);
 
@@ -160,6 +217,12 @@ fn insert_new_import_operation(
         expected_node_kind: None,
         new_text: format!("{}\n", import_line),
     }
+}
+
+fn detect_go_import_indent(source: &str, line: usize) -> String {
+    let target = source.lines().nth(line).unwrap_or("");
+    let indent_len = target.chars().take_while(|c| c == &'\t' || c == &' ').count();
+    target[..indent_len].to_string()
 }
 
 fn build_ts_import_line(

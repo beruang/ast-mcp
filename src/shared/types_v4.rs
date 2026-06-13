@@ -2,6 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::shared::lenient;
 use crate::shared::position::Range;
 
 // ── SafetyViolation ──
@@ -122,6 +123,8 @@ pub struct ImportRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub namespace_import: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub is_type_only: Option<bool>,
 }
 
@@ -146,7 +149,7 @@ pub enum WrapRequest {
 
 // ── FunctionSignatureOperation ──
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum FunctionSignatureOperation {
     ReplaceSignature {
@@ -155,6 +158,7 @@ pub enum FunctionSignatureOperation {
     AddParameter {
         parameter_text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
         position: Option<u32>,
     },
     RemoveParameter {
@@ -164,8 +168,75 @@ pub enum FunctionSignatureOperation {
         old_name: String,
         new_name: String,
         #[serde(default)]
+        #[serde(deserialize_with = "lenient::deserialize_lenient_bool")]
         rename_body_occurrences: bool,
     },
+}
+
+// Custom Deserialize for FunctionSignatureOperation so the field-level
+// deserialize_with annotations take effect (serde derive for tagged enums
+// uses an intermediate representation that bypasses field-level attrs).
+impl<'de> Deserialize<'de> for FunctionSignatureOperation {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Accept any map and deserialize kind + fields leniently.
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let kind = value.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+        match kind {
+            "replace_signature" => {
+                let text = value.get("new_signature_text").and_then(|v| v.as_str()).unwrap_or("");
+                Ok(FunctionSignatureOperation::ReplaceSignature {
+                    new_signature_text: text.to_string(),
+                })
+            }
+            "add_parameter" => {
+                let parameter_text =
+                    value.get("parameter_text").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let position = parse_opt_u32(&value, "position");
+                Ok(FunctionSignatureOperation::AddParameter { parameter_text, position })
+            }
+            "remove_parameter" => {
+                let parameter_name =
+                    value.get("parameter_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                Ok(FunctionSignatureOperation::RemoveParameter { parameter_name })
+            }
+            "rename_parameter" => {
+                let old_name =
+                    value.get("old_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let new_name =
+                    value.get("new_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let rename_body_occurrences = value
+                    .get("rename_body_occurrences")
+                    .map(|v| match v {
+                        serde_json::Value::Bool(b) => *b,
+                        serde_json::Value::String(s) => {
+                            matches!(s.to_lowercase().as_str(), "true" | "1" | "yes")
+                        }
+                        _ => false,
+                    })
+                    .unwrap_or(false);
+                Ok(FunctionSignatureOperation::RenameParameter {
+                    old_name,
+                    new_name,
+                    rename_body_occurrences,
+                })
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "unknown kind for FunctionSignatureOperation: {}",
+                kind
+            ))),
+        }
+    }
+}
+
+fn parse_opt_u32(value: &serde_json::Value, key: &str) -> Option<u32> {
+    value.get(key).and_then(|v| match v {
+        serde_json::Value::Number(n) => n.as_u64().map(|x| x as u32),
+        serde_json::Value::String(s) => s.parse::<u32>().ok(),
+        _ => None,
+    })
 }
 
 // ── Tool-specific input types ──
@@ -174,12 +245,20 @@ pub enum FunctionSignatureOperation {
 pub struct AstRewritePreviewInput {
     pub operations: Vec<RewriteOperation>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_changed_files: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_edits: Option<u32>,
 }
 
@@ -188,8 +267,12 @@ pub struct AstInsertImportPreviewInput {
     pub file_path: String,
     pub import: ImportRequest,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -199,8 +282,12 @@ pub struct AstRemoveUnusedImportPreviewInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub import_names: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -212,8 +299,12 @@ pub struct AstRenameLocalPreviewInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope_range: Option<Range>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -225,8 +316,12 @@ pub struct AstWrapNodePreviewInput {
     pub expected_node_kind: Option<String>,
     pub wrapper: WrapRequest,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -238,8 +333,12 @@ pub struct AstAddDecoratorPreviewInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expected_target_kind: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -249,8 +348,12 @@ pub struct AstModifyFunctionSignaturePreviewInput {
     pub function_range: Range,
     pub operation: FunctionSignatureOperation,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub include_diff: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_bool")]
     pub parse_check: Option<bool>,
 }
 
@@ -258,8 +361,12 @@ pub struct AstModifyFunctionSignaturePreviewInput {
 pub struct AstValidateRewriteInput {
     pub operations: Vec<RewriteOperation>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_changed_files: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_edits: Option<u32>,
 }
 
@@ -267,8 +374,12 @@ pub struct AstValidateRewriteInput {
 pub struct AstParseAfterRewriteInput {
     pub edits: Vec<TextEdit>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_changed_files: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "lenient::deserialize_lenient_opt_u32")]
     pub max_edits: Option<u32>,
 }
 

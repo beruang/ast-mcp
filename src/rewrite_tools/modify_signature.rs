@@ -90,6 +90,7 @@ fn find_function_node<'a>(node: &Node<'a>, start: usize, end: usize) -> Option<N
         "function_expression",
         "arrow_function",
         "method_definition",
+        "method_declaration",
         "generator_function_declaration",
     ];
     if func_kinds.contains(&node.kind()) && node.start_byte() <= start && node.end_byte() >= end {
