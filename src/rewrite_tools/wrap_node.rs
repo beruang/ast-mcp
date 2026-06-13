@@ -45,6 +45,9 @@ fn wrap_node(workspace: &Workspace, input: &AstWrapNodePreviewInput) -> RewriteP
             Err(e) => return make_error(&input.file_path, &e.to_string()),
         };
 
+    let ext = resolved.absolute.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let is_js_like = matches!(ext, "ts" | "tsx" | "js" | "jsx");
+
     let original_text = &source[byte_start..byte_end];
     let indent = indentation::indentation_string(&source, byte_start);
 
@@ -53,6 +56,15 @@ fn wrap_node(workspace: &Workspace, input: &AstWrapNodePreviewInput) -> RewriteP
             format!("{}{}{}", prefix, original_text, suffix)
         }
         WrapRequest::TryCatch { catch_binding, catch_body } => {
+            if !is_js_like {
+                return make_error(
+                    &input.file_path,
+                    &format!(
+                        "try_catch wrapper is only supported for TypeScript/JavaScript, not .{}",
+                        ext
+                    ),
+                );
+            }
             let binding = catch_binding.as_deref().unwrap_or("error");
             let indented_body = indentation::indent_text(original_text, &format!("{}  ", indent));
             let indented_catch = indentation::indent_text(catch_body, &format!("{}  ", indent));
