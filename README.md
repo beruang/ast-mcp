@@ -1,56 +1,32 @@
-# MCP AST — Code Intelligence Server
+# ast-mcp
 
 [![Rust](https://img.shields.io/badge/rust-1.96%2B-orange.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-162%20passed-brightgreen.svg)](.)
 
-Production-grade structural code intelligence over MCP. **54 tools** across parsing, extraction, context selection, framework detection, structural rewrites, complexity analysis, and operational observability. Backed by Tree-sitter parsers for TypeScript, TSX, JavaScript, JSX, Python, Go, and Rust.
+Production-grade structural AST analysis MCP server. Exposes **54 `ast_*` tools** over stdio JSON-RPC 2.0, backed by Tree-sitter parsers for TypeScript, TSX, JavaScript, JSX, Python, Go, and Rust.
 
 ---
 
 ## Architecture
 
 ```
-                            ┌─────────────────────────────────────┐
-                            │           MCP Client (LLM)          │
-                            └──────────────┬──────────────────────┘
-                                           │  JSON-RPC 2.0
-                                           │  stdin / stdout
-                                           ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              ast-mcp Server                                     │
-│                                                                                 │
-│   ┌───────────┐    ┌─────────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│   │ Transport │───▶│  ServerContext  │───▶│  Dispatch    │───▶│ Safety Layer │  │
-│   │ tower-lsp │    │  · workspace    │    │  54 tools    │    │ · path bound │  │
-│   │   stdio   │    │  · config       │    │  registered  │    │ · size caps  │  │
-│   │           │    │  · caches       │    │              │    │ · truncation │  │
-│   └───────────┘    │  · req tracker  │    └──────────────┘    └──────┬───────┘  │
-│                    │  · scan registry│                               │          │
-│                    └─────────────────┘                               ▼          │
-│                                                           ┌───────────────┐     │
-│                                                           │  Tree-sitter  │     │
-│                                                           │   0.22 × 7    │     │
-│                                                           │ TS/JS/Py/Go/Rs│     │
-│                                                           └───────────────┘     │
-└─────────────────────────────────────────────────────────────────────────────────┘
+MCP Client ── stdio ── JSON-RPC 2.0 ── ServerContext ── Tool Dispatch ── Safety Layer ── Tree-sitter
 ```
 
-| Layer | Role |
+| Layer | Responsibility |
 |---|---|
-| **Transport** | JSON-RPC 2.0 over stdin/stdout via `tower-lsp`. Notifications are dropped. |
-| **ServerContext** | Shared state: workspace resolver, layered runtime config, TTL caches, request log ring buffer, scan registry with cancellation. |
-| **Dispatch** | 54 registered tools. Each handler validates input, enforces limits, and delegates to the appropriate engine. |
-| **Safety** | Workspace-bounded paths — `..`, absolute paths, and symlink escapes rejected. File size, node count, and text bytes capped. Truncation flagged in responses. |
-| **Tree-sitter** | 7 language grammars at 0.22. Byte offsets → LSP positions via `O(log n)` binary search on pre-built line index. |
-
-Positions are LSP-compatible: zero-based `line` + UTF-16 `character` offset.
+| **Transport** | JSON-RPC 2.0 over stdin/stdout via tower-lsp. Notifications are dropped. |
+| **ServerContext** | Shared state: workspace, config store, caches, request tracker, scan registry. |
+| **Safety** | Workspace-bounded paths. `..`, absolute paths, and symlink escapes rejected. File size, node count, and text bytes capped. |
+| **Parsers** | Tree-sitter 0.22 — each language gets its own grammar. Byte-to-LSP-position conversion via `O(log n)` binary search on a line index. |
+| **Positions** | LSP-compatible: zero-based `line` + UTF-16 `character` offset. |
 
 ---
 
 ## Supported Languages
 
-| Language | Extensions | Parser Crate |
+| Language | Extensions | Parser |
 |---|---|---|
 | TypeScript | `.ts` | `tree-sitter-typescript` |
 | TSX | `.tsx` | `tree-sitter-typescript` (tsx) |
@@ -64,118 +40,93 @@ Positions are LSP-compatible: zero-based `line` + UTF-16 `character` offset.
 
 ## Tools
 
-### Diagnostics & Health
+### V1 — Core Parsing & Extraction (12 tools)
 
 | Tool | Description |
 |---|---|
 | `ast_health_check` | Workspace path, available parsers, configured limits |
-| `ast_list_supported_languages` | Language registry — extensions, parser name, availability |
-| `ast_readiness` | Readiness probe — workspace, parser registry, cache initialization, config validity |
-| `ast_liveness` | Liveness probe — uptime, memory usage. No parsing or scanning. |
-| `ast_parser_status` | Parser registry health — language, version, query count, last error |
-| `ast_rebuild_parser_cache` | Clear and reinitialize parser/query caches per language |
-
-### Parsing
-
-| Tool | Description |
-|---|---|
-| `ast_parse_file` | Parse a file — root kind, node count, parse time, optional depth-limited tree |
-| `ast_query` | Run a Tree-sitter query pattern — captures with kind, name, range, text |
-| `ast_file_outline` | Structured outline — classes, functions, methods, imports, exports |
-| `ast_file_metrics` | Structural metrics — lines, nodes, functions, nesting depth |
-
-### Navigation
-
-| Tool | Description |
-|---|---|
+| `ast_list_supported_languages` | Language registry with extensions and availability |
+| `ast_parse_file` | Parse a file — root kind, node count, parse time, optional tree |
+| `ast_file_outline` | Structured outline — classes, functions, imports, exports |
 | `ast_top_level_nodes` | Direct children of the root node with kinds and ranges |
-| `ast_enclosing_node` | Smallest node at a position, filterable ancestor chain (outermost first) |
-| `ast_enclosing_scope` | Syntactic scope chain at a position — module, class, function, block |
-| `ast_node_at_range` | Smallest node that exactly matches or contains a source range |
-| `ast_node_text` | Exact source text for a range — byte-budgeted, no whole-file read |
-
-### Context Selection
-
-| Tool | Description |
-|---|---|
-| `ast_context_for_range` | Syntax context around a range — target node, parent chain, optional siblings |
-| `ast_context_pack` | Compact agent-ready context pack — imports, exports, scope, outline, nearby symbols |
-
-### Extraction
-
-| Tool | Description |
-|---|---|
+| `ast_enclosing_node` | Smallest node at a position, with filterable ancestor chain |
 | `ast_find_imports` | All imports — ES modules, `require()`, Python `import`/`from` |
-| `ast_find_exports` | All exports — TS/JS declarations, re-exports, Python `__all__`, public defs |
-| `ast_find_functions` | Functions, methods, constructors, arrows, lambdas — params, return types |
-| `ast_find_classes` | Class definitions — extends, implements, decorators, methods |
-| `ast_find_calls` | Call expressions — filter by callee name or substring |
-| `ast_find_member_access` | Member/property access expressions — filter by property or object |
-| `ast_find_literals` | String, number, boolean, null, regex literals — filter by kind or value |
-| `ast_find_template_literals` | Template literals — filter by tag name (e.g. `sql`, `gql`) or content |
-| `ast_dependency_edges` | Syntax-level dependency edges — imports, exports, requires across files |
+| `ast_find_exports` | All exports — TS/JS declarations, Python `__all__`, public defs |
+| `ast_find_functions` | Functions, methods, arrows, lambdas — with parameters and return types |
+| `ast_find_classes` | Classes with extends, implements, decorators, methods |
+| `ast_chunk_file` | Split a file into chunks — 4 strategies |
+| `ast_query` | Run a Tree-sitter query pattern — captures with kind, name, range, text |
 
-### Structural Chunking
+### V2 — Context & Workspace (11 tools)
 
 | Tool | Description |
 |---|---|
-| `ast_chunk_file` | Split a file into chunks — 4 strategies: `top_level`, `function_class`, `semantic_blocks`, `max_lines` |
+| `ast_enclosing_scope` | Syntactic scope chain at a position |
+| `ast_node_at_range` | Smallest node matching or containing a range |
+| `ast_node_text` | Exact source text for a range (byte-budgeted) |
+| `ast_context_for_range` | Syntax context around a range — target, parents, siblings |
+| `ast_context_pack` | Compact agent-ready structural context pack |
+| `ast_find_calls` | Call expressions — filter by callee name |
+| `ast_find_member_access` | Member/property access expressions |
+| `ast_find_literals` | String, number, boolean, null, regex literals |
+| `ast_find_template_literals` | Template literals — filter by tag or content |
+| `ast_query_workspace` | Bounded Tree-sitter query across workspace files |
+| `ast_file_metrics` | Structural metrics: lines, nodes, functions, nesting depth |
 
-### Framework-Aware Detection
+### V3 — Framework-Aware Extraction (7 tools)
 
 | Tool | Description |
 |---|---|
-| `ast_find_schema_definitions` | Zod schemas, TypeScript interfaces, Pydantic models, dataclasses, SQLAlchemy, Go/Rust structs |
-| `ast_find_react_components` | Function, arrow, and class components — props, hooks used, JSX root |
+| `ast_find_schema_definitions` | Zod, TypeScript interfaces, Pydantic, dataclasses, SQLAlchemy, Go/Rust structs |
+| `ast_find_react_components` | Function, arrow, and class components — hooks, JSX summary |
 | `ast_find_hooks` | Built-in and custom React hooks — usages and definitions |
-| `ast_find_routes` | Express, Fastify, Hono, Next.js, NestJS, FastAPI, Flask, Django, Go `net/http`, Rust Axum |
-| `ast_find_decorators` | TypeScript decorators, Python decorators, Rust `#[attributes]` — with target attachment |
-| `ast_find_tests` | Jest, Vitest, Mocha, Pytest, unittest, Go tests, Rust `#[test]` — suite/test/fixture/hook |
-| `ast_query_workspace` | Bounded Tree-sitter query across workspace files — glob, limits, parallelism |
+| `ast_find_routes` | Express, Fastify, Hono, Next.js, NestJS, FastAPI, Flask, Django, Go, Axum |
+| `ast_find_decorators` | TypeScript, Python, and Rust decorators/annotations/attributes |
+| `ast_find_tests` | Jest, Vitest, Mocha, Pytest, unittest, Go, Rust tests |
+| `ast_dependency_edges` | Syntax-level dependency edges — imports, exports, requires |
 
-### Structural Rewrites (Preview-Only)
-
-| Tool | Description |
-|---|---|
-| `ast_rewrite_preview` | Preview structural rewrites — replace, insert before/after, delete. Returns diff + validation. |
-| `ast_validate_rewrite` | Validate rewrite operations — safety, overlap, limits. No diff generated. |
-| `ast_parse_after_rewrite` | Apply edits in memory, re-parse, report syntax errors. |
-| `ast_insert_import_preview` | Preview adding an import — TS/JS/Python. Merges with existing imports. |
-| `ast_remove_unused_import_preview` | Preview removing syntactically unused imports. Side-effect imports preserved. |
-| `ast_rename_local_preview` | Preview renaming a local variable within its scope. Exported/top-level rejected. |
-| `ast_wrap_node_preview` | Preview wrapping a node — prefix/suffix, try/catch, or call expression. |
-| `ast_add_decorator_preview` | Preview adding a decorator/attribute — TS/JS/Python/Rust. |
-| `ast_modify_function_signature_preview` | Preview modifying function signature — add/remove/rename params or replace. |
-
-### Structural Analysis
+### V4 — Structural Rewrite Preview (9 tools)
 
 | Tool | Description |
 |---|---|
-| `ast_complexity_summary` | Per-file and workspace-wide complexity — branch/loop count, nesting depth, hotspot ranking with risk heuristics |
-| `ast_detect_large_nodes` | Find oversized functions, classes, modules, tests — configurable `min_lines` threshold |
-| `ast_detect_duplicate_shapes` | Heuristic clone detection — structural fingerprinting with identifier/literal normalization |
+| `ast_rewrite_preview` | Preview structural rewrites: replace, insert, delete — diff + validation |
+| `ast_validate_rewrite` | Validate edits without generating a diff |
+| `ast_parse_after_rewrite` | Apply edits in memory, re-parse, check for syntax errors |
+| `ast_insert_import_preview` | Preview adding an import — TS/JS/Python |
+| `ast_remove_unused_import_preview` | Preview removing syntactically unused imports |
+| `ast_rename_local_preview` | Preview renaming a local variable within its scope |
+| `ast_wrap_node_preview` | Preview wrapping a node — prefix/suffix, try/catch, call expression |
+| `ast_add_decorator_preview` | Preview adding a decorator/attribute — TS/JS/Python/Rust |
+| `ast_modify_function_signature_preview` | Preview modifying a function signature |
 
-### Operations & Observability
+### V5 — Production Hardening (15 tools)
 
 | Tool | Description |
 |---|---|
-| `ast_get_config` | Return effective runtime config — optional source breakdown (defaults, env, overrides) |
-| `ast_update_runtime_config` | Update limits, timeouts, cache TTLs, scan parallelism at runtime. Immutable fields rejected. |
-| `ast_request_log` | Recent request history — filter by tool name, status, file path. Ring buffer. |
-| `ast_clear_request_log` | Clear request log entries — optionally filtered by tool. |
-| `ast_cache_status` | Cache sizes, TTLs, estimated memory per cache — parse trees, queries, framework results, request log |
-| `ast_clear_caches` | Clear caches selectively. Clearing parse trees cascades to dependent query/framework caches. |
-| `ast_workspace_scan_status` | Active and recent workspace scan progress — files discovered, processed, results found |
-| `ast_cancel_workspace_scan` | Cooperatively cancel a running workspace scan by ID. |
+| `ast_get_config` | Return effective runtime configuration with source breakdown |
+| `ast_update_runtime_config` | Update limits, timeouts, cache TTLs, scan settings at runtime |
+| `ast_request_log` | Recent request history — filter by tool, status, file path |
+| `ast_clear_request_log` | Clear request log entries |
+| `ast_cache_status` | Parse tree, query, and framework cache sizes, TTLs, memory |
+| `ast_clear_caches` | Clear caches selectively — cascading dependency awareness |
+| `ast_readiness` | Readiness probe — workspace, parsers, caches, config |
+| `ast_liveness` | Liveness probe — uptime, memory (no parsing, no scanning) |
+| `ast_parser_status` | Parser registry health — language, version, query count, errors |
+| `ast_rebuild_parser_cache` | Clear and rebuild parser/query caches per language |
+| `ast_workspace_scan_status` | Active and recent workspace scan progress |
+| `ast_cancel_workspace_scan` | Cancel a running workspace scan cooperatively |
+| `ast_complexity_summary` | Structural complexity — branch/loop count, nesting depth, hotspots |
+| `ast_detect_large_nodes` | Find oversized functions, classes, modules across the workspace |
+| `ast_detect_duplicate_shapes` | Heuristic clone detection — structural fingerprinting with normalization |
 
 ---
 
 ## Runtime Configuration
 
-Layered, in-memory configuration. Precedence:
+V5 introduces layered, in-memory runtime configuration. Precedence:
 
 ```
-defaults  →  AST_* environment variables  →  ast_update_runtime_config overrides
+defaults → AST_* environment variables → ast_update_runtime_config overrides
 ```
 
 ### Environment Variables
@@ -186,36 +137,36 @@ defaults  →  AST_* environment variables  →  ast_update_runtime_config overr
 | `AST_MAX_FILE_BYTES` | `1048576` | Max file size (1 MiB) |
 | `AST_MAX_WORKSPACE_FILES` | `500` | Max files per workspace scan |
 | `AST_MAX_WORKSPACE_RESULTS` | `5000` | Max results per workspace scan |
-| `AST_MAX_CONTEXT_CHARACTERS` | `20000` | Max context characters in responses |
+| `AST_MAX_CONTEXT_CHARACTERS` | `20000` | Max context characters |
 | `AST_MAX_PARALLELISM` | `8` | Parallel workers for workspace scans |
-| `AST_RESPECT_GITIGNORE` | `true` | Respect `.gitignore` during file discovery |
+| `AST_RESPECT_GITIGNORE` | `true` | Respect `.gitignore` during scans |
 | `AST_INCLUDE_HIDDEN` | `false` | Include hidden files in scans |
 | `AST_PARSE_TREE_TTL_MS` | `300000` | Parse tree cache TTL (5 min) |
 | `AST_REQUEST_LOG_MAX_ENTRIES` | `500` | Request log ring buffer capacity |
 | `AST_MAX_CACHED_FILES` | `1000` | Max cached parse trees |
-| `AST_VERBOSE_LOGGING` | `false` | Enable verbose tracing output |
+| `AST_VERBOSE_LOGGING` | `false` | Enable verbose tracing |
 
-Runtime updates via `ast_update_runtime_config` are in-memory only. `workspace_path`, parser registry, and language grammar paths are immutable at runtime.
+Runtime config updates via `ast_update_runtime_config` are in-memory only and cannot change `workspace_path`, parser registry, or language grammar paths.
 
 ---
 
 ## Limits
 
-| Limit | Default | Configurable Via |
+| Limit | Default | Configurable |
 |---|---|---|
-| `maxFileBytes` | 1 MiB | `AST_MAX_FILE_BYTES` / runtime update |
-| `maxParseTreeNodes` | 200,000 | Runtime update |
-| `maxQueryResults` | 1,000 | Runtime update |
-| `maxWorkspaceFiles` | 500 | `AST_MAX_WORKSPACE_FILES` / runtime update |
-| `maxWorkspaceResults` | 5,000 | `AST_MAX_WORKSPACE_RESULTS` / runtime update |
-| `maxContextCharacters` | 20,000 | `AST_MAX_CONTEXT_CHARACTERS` / runtime update |
-| `maxChunkLines` | 160 | Runtime update |
-| `maxChangedFiles` | 100 | Runtime update |
-| `maxEdits` | 1,000 | Runtime update |
-| `maxDuplicateCandidates` | 200 | Runtime update |
-| `maxParallelism` | 8 | `AST_MAX_PARALLELISM` / runtime update |
+| `maxFileBytes` | 1 MiB | `AST_MAX_FILE_BYTES` / runtime |
+| `maxParseTreeNodes` | 200,000 | runtime |
+| `maxQueryResults` | 1,000 | runtime |
+| `maxWorkspaceFiles` | 500 | `AST_MAX_WORKSPACE_FILES` / runtime |
+| `maxWorkspaceResults` | 5,000 | `AST_MAX_WORKSPACE_RESULTS` / runtime |
+| `maxContextCharacters` | 20,000 | `AST_MAX_CONTEXT_CHARACTERS` / runtime |
+| `maxChunkLines` | 160 | runtime |
+| `maxChangedFiles` | 100 | runtime |
+| `maxEdits` | 1,000 | runtime |
+| `maxDuplicateCandidates` | 200 | runtime |
+| `maxParallelism` | 8 | `AST_MAX_PARALLELISM` / runtime |
 
-Results exceeding limits are truncated. Responses include `"truncated": true`.
+Results exceeding limits are truncated; responses include `"truncated": true`.
 
 ---
 
@@ -247,7 +198,7 @@ If `WORKSPACE_PATH` is not set, the server uses the current working directory. A
 
 ### Example Tool Calls
 
-**Complexity analysis before a refactor:**
+**Complexity summary:**
 
 ```json
 {
@@ -256,12 +207,12 @@ If `WORKSPACE_PATH` is not set, the server uses the current working directory. A
   "method": "tools/call",
   "params": {
     "name": "ast_complexity_summary",
-    "arguments": { "glob": "src/**/*.ts", "max_files": 200, "max_results": 100 }
+    "arguments": { "glob": "src/**/*.ts", "max_files": 200 }
   }
 }
 ```
 
-**Adjust scan parallelism at runtime:**
+**Runtime config update:**
 
 ```json
 {
@@ -278,7 +229,7 @@ If `WORKSPACE_PATH` is not set, the server uses the current working directory. A
 }
 ```
 
-**Inspect cache health:**
+**Check cache health:**
 
 ```json
 {
@@ -292,43 +243,29 @@ If `WORKSPACE_PATH` is not set, the server uses the current working directory. A
 }
 ```
 
-**Check readiness before a workspace scan:**
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 4,
-  "method": "tools/call",
-  "params": {
-    "name": "ast_readiness",
-    "arguments": { "require_languages": ["typescript", "python"] }
-  }
-}
-```
-
 ---
 
 ## Development
 
 ```bash
-cargo build --release                          # Release build
-cargo test                                     # All tests across 19 binaries
-cargo clippy --all-targets -- -D warnings       # Strict lint
-cargo fmt --check                              # Format check
+cargo build --release              # Release build
+cargo test                         # All 162 tests across 19 binaries
+cargo clippy --all-targets -- -D warnings
+cargo fmt --check
 ```
 
 ### Test Suite
 
-| Suite | Tests | Coverage |
+| Suite | Tests | Description |
 |---|---|---|
 | Unit (lib) | 29 | Parser, positions, fingerprints, request log, rewrite engine |
-| Integration sweep | 14 | All V1 tools end-to-end against fixture files |
-| V3 framework | 45 | Route, schema, React, decorator, test, dependency extractors |
-| V4 rewrites | 12 | Rewrite preview, import insert, rename, wrap, decorator, signature |
-| Per-tool | ~50 | Enclosing nodes, functions/classes, imports/exports, outline, parse, query, positions |
-| Safety & rejection | 8 | Path traversal, missing files, unsupported languages, oversize truncation |
-| Architecture lints | 3 | No `unwrap`/`expect` in library code, no file writes, no LSP dependency |
-| Fuzz | 2 | 500 random byte sequences across 5 parsers with reproducible seeds |
+| Integration sweep | 14 | All V1 tools end-to-end with fixture files |
+| V3 | 45 | Framework extractors across TypeScript, Python, Go, Rust |
+| V4 | 12 | Rewrite preview tools — safety, insert, modify, rename |
+| Per-tool tests | ~50 | Enclosing nodes, functions/classes, imports/exports, outline, parse, query |
+| Safety & rejection | 8 | Path traversal, missing files, unsupported languages, truncation |
+| Architecture lints | 3 | No `unwrap` in library, no file writes, no LSP dependency |
+| Fuzz | 2 | 500 random byte sequences across 5 parsers |
 | **Total** | **~162** | |
 
 ---
@@ -339,36 +276,34 @@ cargo fmt --check                              # Format check
 src/
 ├── main.rs                  # Entry point — workspace + transport loop
 ├── lib.rs                   # Crate root
-├── config/                  # Workspace resolver, runtime config, env parsing, validation
+├── config/                  # Workspace, runtime config, env parsing, validation
 ├── mcp/                     # JSON-RPC transport, tool registry, ServerContext
-├── parser/                  # Tree-sitter wrappers (0.22), line index, query engine
-├── languages/               # Per-language node kinds — TS, JS, Python, Go, Rust
-├── shared/                  # Position, Range, AST node, errors, V2–V5 type schemas
-├── safety/                  # Path resolution, range validation, size limits, truncation
-├── text/                    # Position encoding, UTF-16 conversion, indentation, byte budget
-├── workspace/               # File scanner, glob matching, .gitignore rules
-│
-├── extractors/              # V1 — AST extractors (outline, imports, exports, functions, classes)
-├── context/                 # V2 — Scope chain, node-at-range, context pack
-├── extraction/              # V2 — Calls, literals, member access, template literals
-├── metrics/                 # V2 — File/function metrics, nesting depth
-├── frameworks/              # V3 — Routes, React, schemas, decorators, tests, dependencies
-├── rewrite/                 # V4 — Diff engine, edit overlap, parse-after-rewrite
-├── rewrite_tools/           # V4 — Import merge, rename, wrap, decorator, signature
-├── analysis/                # V5 — Complexity summary, large node detection, duplicate shapes
-├── cache/                   # V5 — TTL caches (parse tree, query, framework results)
-├── observability/           # V5 — Request log ring buffer, request tracker
-├── ops/                     # V5 — Readiness, liveness, parser status, cache rebuild
-├── scan/                    # V5 — Scan registry, cooperative cancellation
-│
-└── tools/                   # 54 tool handlers — one module per tool
+├── parser/                  # Tree-sitter wrappers, line index, query runner
+├── extractors/              # Language-agnostic AST extractors (V1)
+├── context/                 # Scope chain, node-at-range, context pack (V2)
+├── extraction/              # Calls, literals, member access, templates (V2)
+├── metrics/                 # File and function metrics, nesting depth (V2)
+├── frameworks/              # Routes, React, schemas, decorators, tests, deps (V3)
+├── rewrite/                 # Rewrite engine — diff, overlap, parse-after (V4)
+├── rewrite_tools/           # Import merge, rename, wrap, decorator, signature (V4)
+├── analysis/                # Complexity, large nodes, duplicate shapes (V5)
+├── cache/                   # TTL caches — parse tree, query, framework results (V5)
+├── observability/           # Request log ring buffer, request tracker (V5)
+├── ops/                     # Readiness, liveness, parser status, rebuild (V5)
+├── scan/                    # Scan registry, cooperative cancellation (V5)
+├── tools/                   # One module per tool — 54 handlers total
+├── languages/               # Language-specific node kinds (TS, JS, Python, Go, Rust)
+├── safety/                  # Path resolution, range validation, limits, violations
+├── text/                    # Position encoding, UTF-16, indentation, byte budget
+├── workspace/               # File scanner, glob matching, ignore rules
+└── shared/                  # Position, Range, errors, AST node, V2–V5 types
 ```
 
 ---
 
 ## Architectural Boundaries
 
-MCP AST is **structural only**. It does not own semantic compiler truth.
+AST MCP is **structural only**. It does not own semantic compiler truth.
 
 | May Do | Must Not Do |
 |---|---|
@@ -376,18 +311,18 @@ MCP AST is **structural only**. It does not own semantic compiler truth.
 | Run Tree-sitter queries | Resolve semantic references |
 | Extract imports, exports, functions, classes, routes, tests, decorators | Infer full type information |
 | Chunk files structurally | Perform semantic rename |
-| Preview structural rewrites (read-only, in-memory) | Apply patches to disk |
+| Preview structural rewrites (read-only) | Apply patches to disk |
 | Compute structural metrics and complexity | Execute shell commands |
 | Cache parse trees, query results, framework extractions | Run tests or typecheck |
-| Scan workspaces with bounded parallelism and cancellation | |
+| Scan workspaces with bounded parallelism | |
 
-For semantic analysis, use LSP MCP. For cross-service orchestration, use Agent Skills.
+For semantic analysis, use LSP MCP. For cross-service workflows, use Agent Skills.
 
 ---
 
 ## Error Handling
 
-All tools return structured errors:
+All tools return structured errors with a `code` and `message`. Example:
 
 ```json
 {
@@ -398,13 +333,13 @@ All tools return structured errors:
 }
 ```
 
-V5 adds 16 error codes for cache operations (`cache_unavailable`, `cache_clear_failed`), config validation (`invalid_runtime_config`, `config_update_rejected`), scan lifecycle (`workspace_scan_not_found`, `scan_timeout`), analysis failures (`complexity_analysis_failed`, `duplicate_shape_detection_failed`), and health checks (`readiness_check_failed`, `parser_rebuild_failed`).
+V5 adds 16 new error codes for cache operations, config validation, scan lifecycle, and analysis failures.
 
 ---
 
 ## Known Limitations
 
-- **Timeout enforcement**: Declared in metadata and enforced at request level; Tree-sitter parse operations are synchronous (no hard interrupt mid-parse).
-- **Position encoding**: Exact for ASCII, Latin-1, BMP, and surrogate pairs. Complex grapheme clusters may diverge from user-perceived positions.
-- **Duplicate detection**: Heuristic structural fingerprinting — not a full clone-detection engine. Normalization may produce false positives.
-- **Complexity metrics**: Node-kind counting heuristics — not compiler-grade cyclomatic complexity. Risk classifications (`low`/`medium`/`high`) are advisory.
+- **Timeout enforcement**: Timeouts are declared in tool metadata and enforced at the request level; Tree-sitter parse operations are synchronous.
+- **Position encoding**: Exact for ASCII, Latin-1, BMP, and surrogate pairs. Complex grapheme clusters may report different UTF-16 widths than user-perceived positions.
+- **Duplicate detection**: Heuristic structural fingerprinting only — not a full clone-detection engine. Normalization may produce false positives.
+- **Complexity metrics**: Structural heuristics based on node kind counting — not compiler-grade cyclomatic complexity. Risk classifications are advisory.
